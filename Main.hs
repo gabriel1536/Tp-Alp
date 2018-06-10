@@ -9,18 +9,18 @@ import Data.Ord
 import System.Console.Haskeline
 
 
---import Text.PrettyPrint.HughesPJ (render)
+import Text.PrettyPrint.HughesPJ (render)
 
 import Failable
 import Common
---import Eval
+import Eval
 --import PrettyPrinter
 import Parser
 
 -- Módulo principal para ejecutar el intérprete
 
 --------------------------------------------------------------------------------
-{-
+
 -- Representa un estado del intérprete
 data State = S { files :: [String],
                  env :: Env,
@@ -29,16 +29,14 @@ data State = S { files :: [String],
 
 -- Estado Vacío
 emptyState :: State
-emptyState = S ["Prelude.rlf"] [] True
--}
---------------------------------------------------------------------------------
+emptyState = S ["programon.fsm"] [] True
 
-
+--------------------------------------------------------------------------------}
 
 -- Limpia limpia la pantalla
 clearScr :: IO ()
 clearScr = do putStrLn "\ESC[H\ESC[J"
-              putStrLn "RLF: Interprete de Funciones Recursivas de Lista v:1.0. Escriba :? para obtener ayuda."
+              putStrLn "Finally, a FSM interpreter, yay!."
 
 -- Código de colores
 blackColor       = 30
@@ -51,35 +49,38 @@ cyanColor        = 36
 whiteColor       = 37
 
 -- Imprime un texto con un color
-printWColor :: String -> Int -> IO ()
-printWColor x color = putStrLn $ "\x1b[" ++ show color ++ "m" ++ x ++ "\x1b[0m"
+printWColor :: String -> Int -> InputT IO ()
+printWColor x color = outputStrLn $ "\x1b[" ++ show color ++ "m" ++ x ++ "\x1b[0m"
 
 -- Imprime un error
-printError :: String -> IO ()
+printError :: String -> InputT IO ()
 printError x = printWColor x redColor
 
 -- Imprime un mensaje verde
-printOk :: String -> IO ()
+printOk :: String -> InputT IO ()
 printOk x = printWColor x greenColor
 
 -- Función principal
 main :: IO ()
 main = do clearScr
-          mainLoop
+          s <- reload emptyState
+          runInputT defaultSettings (mainLoop s)
 
 -- Bucle principal del intérprete
-mainLoop :: IO ()
-mainLoop = runInputT defaultSettings loop
-            where
-                loop :: InputT IO ()
-                loop = do 
-                    minput <- getInputLine "% "
-                    case minput of
-                        Nothing -> return ()
-                        Just "quit" -> return ()
-                        Just input -> do 
-                                        outputStrLn $ "Input was: " ++ input
-                                        loop
+mainLoop :: State -> InputT IO ()
+mainLoop s@(S{..}) = do 
+                        minput <- getInputLine "> "
+                        case minput of
+                            Nothing -> return ()
+                            Just "" -> mainLoop s
+                            Just input -> do 
+                                            c <- parseCommand input
+                                            case c of 
+                                                Just command -> 
+                                                    do ns <- handleCommand command s
+                                                       mainLoop ns
+                                                _ -> do ns <- runStringSecure input s
+                                                        mainLoop ns 
 
 {-
 mainLoop s@(S{..}) = if not working then return () else
@@ -95,7 +96,7 @@ mainLoop s@(S{..}) = if not working then return () else
                                                                     mainLoop ns
                                                  _ -> do ns <- runStringSecure line s
                                                          mainLoop ns
-
+-}
 --------------------------------------------------------------------------------
 -- Comandos
 
@@ -112,7 +113,7 @@ data Command    = Load String
                 deriving Show
 
 -- Lee un comando y retorna un comando opcional
-parseCommand :: String -> IO (Maybe Command)
+parseCommand :: String -> InputT IO (Maybe Command)
 parseCommand str =  if null str then return $ Just (Help) else
                     case splitCommand str of
                         Nothing -> return Nothing
@@ -133,16 +134,17 @@ parseCommand str =  if null str then return $ Just (Help) else
                                                 "clearscreen"  -> return $ Just (ClearScreen)
                                                 "cls"          -> return $ Just (ClearScreen)
                                                 "exit"         -> return $ Just (Exit)
+                                                "quit"         -> return $ Just (Exit)
                                                 "q"            -> return $ Just (Exit)
                                                 _              -> return $ Just (Null com)
 
 -- Maneja un comando:
 -- Toma el comando a trabajar y el estado actual
-handleCommand :: Command -> State -> IO State
+handleCommand :: Command -> State -> InputT IO State
 handleCommand comm s@(S {..}) = do  case comm of
                                         Load path -> addFile path s
                                         Reload ->   reload s
-                                        Disassociate f -> do printOk $ "Se há desasociado el archivo \"" ++ f ++ "\""
+                                        Disassociate f -> do printOk $ "Se ha desasociado el archivo \"" ++ f ++ "\""
                                                              return s { files =  delete f files }
                                         Print var -> printVar var s
                                         Reset -> do putStrLn "Reiniciando entorno"
@@ -158,13 +160,13 @@ handleCommand comm s@(S {..}) = do  case comm of
 --------------------------------------------------------------------------------
 
 -- Recarga el sistema
-reload :: State -> IO State
+reload :: State -> InputT IO State
 reload s@(S {..}) = loadFilesSecure files s
 
 
 -- Carga una lista de achivos de manera segura
 -- Esto es se carga todo o nada
-loadFilesSecure :: [String] -> State -> IO State
+loadFilesSecure :: [String] -> State -> InputT IO State
 loadFilesSecure files s = let ns = s {env = []} in
                           do temp <- loadFiles files ns ns
                              case temp of
@@ -173,7 +175,7 @@ loadFilesSecure files s = let ns = s {env = []} in
                                                 return s
 
 -- Carga una lista de archivos en un estado (Puede fallar, esto debe ser capturado)
-loadFiles :: [String] -> State -> State -> IO (Failable State)
+loadFiles :: [String] -> State -> State -> InputT IO (Failable State)
 loadFiles [] s _ = do printOk "Carga completa"
                       return (Ok s)
 loadFiles (x:xs) s original = do temp <- loadFile x s
@@ -182,10 +184,10 @@ loadFiles (x:xs) s original = do temp <- loadFile x s
                                     Error err -> return (Error err)
 
 -- Carga un archivo en un estado
-loadFile :: String -> State -> IO (Failable State)
+loadFile :: String -> State -> InputT IO (Failable State)
 loadFile path s = do c <- tryIOError (readFile path)
                      case c of
-                         Left _ -> return (Error $ "No se pudo leer el arcchivo \"" ++ path ++ "\".")
+                         Left _ -> return (Error $ "No se pudo leer el archivo \"" ++ path ++ "\".")
                          Right content -> do putStrLn $ "Cargando \"" ++ path ++ "\"."
                                              temp <- runString content s
                                              case temp of
@@ -194,7 +196,7 @@ loadFile path s = do c <- tryIOError (readFile path)
 
 -- Evalua un String y retorna un estado que o bien contiene el resultado de toda la
 -- ejecución o el estado original si hubo algún fallo
-runStringSecure :: String -> State -> IO State
+runStringSecure :: String -> State -> InputT IO State
 runStringSecure content s = do  temp <- runString content s
                                 case temp of
                                     Ok ns -> return ns
@@ -210,7 +212,7 @@ runString content s@(S{..}) = case parseComm content of
                                 Error err -> return (Error err)
 
 -- Agrega un archivo a la lista de archvos si este no está presenta
-addFile :: String -> State -> IO State
+addFile :: String -> State -> InputT IO State
 addFile path s@(S {..}) = if elem path files
                           then do printError $ "El archivo \"" ++ path ++ "\" ya estaba agregado."
                                   return s
@@ -252,4 +254,3 @@ splitCommand (':':xs) = let (a, b) = span (/= ' ') xs in
                             (_ : c) -> Just (a, c)
                             _ -> Just (a, "")
 splitCommand _ = Nothing
--}

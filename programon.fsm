@@ -1,0 +1,14 @@
+Machine fsm = "numeritos";
+
+setAlphabet("numeritos", ["a", "b", "c", "d"]);
+
+addStates("numeritos", ["as", "bs", "cs", "ds"]);
+
+setInitialState("numeritos", "a");
+
+setFinalStates("numeritos", ["b"]);
+
+setTransitions("numeritos", [("a","b"), ("a","c"), ("b","c"), ("c","b")]);
+
+let cadena = "sarasa";
+let mathfunc = "x4+1 2";

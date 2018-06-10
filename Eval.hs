@@ -11,7 +11,7 @@ import Control.Monad       (liftM, ap)
 -- Entornos y Variables
 
 -- Entornos
-type EnvItem = (Word, VarType)  -- Elemento de Entorno
+type EnvItem = (FWord, VarType)  -- Elemento de Entorno
 type Env = [EnvItem]                -- Entorno
 
 -- Entorno nulo
@@ -20,7 +20,7 @@ initState = []
 
 -- Tipos de variables
 data VarType = VarMachine Fsm
-             | Var Word
+             | Var FWord
              deriving Show
 
 --------------------------------------------------------------------------------
@@ -46,9 +46,9 @@ instance Applicative StateError where
 -- Clase para representar monadas con estado de variables
 class Monad m => MonadState m where
   -- Busca el valor de una variable
-  lookfor :: Word -> m VarType
+  lookfor :: FWord -> m VarType
   -- Cambia el valor de una variable
-  update :: Word -> VarType -> m ()
+  update :: FWord -> VarType -> m ()
 
 instance MonadState StateError where
     lookfor v = StateError (\s -> lookfor' v s s)
@@ -74,7 +74,7 @@ instance MonadError StateError where
 
 --------------------------------------------------------------------------------
 -- Evaluadores globales
-
+{-
 -- Evalúa un AST en el estado nulo
 eval :: Comm -> Failable Env
 eval comm = eval' comm initState
@@ -147,3 +147,4 @@ evalValue (List ls) = do l <- evalList ls
 evalValue (Apply f ls) = do l <- evalList ls
                             ev <- evalRLFunc f l
                             return $ VarList ev
+-}

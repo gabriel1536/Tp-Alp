@@ -7,8 +7,13 @@ data VT = VTMachine
         | VTWord 
         deriving Show
 
---data Fsm = (alph, st, is, fs, trs)
---           deriving Show
+type Alph = [String]
+type States = [String]
+type IState = [String]
+type FState = [String]
+type Transitions = [(String, String)]
+
+type Fsm = (Alph, States, IState, FState, Transitions)
 
 data FSMFunc = SAlph                    
               | AddS                    
