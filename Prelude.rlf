@@ -1,0 +1,10 @@
+-- Para el el elemento de la derecha a la izquierda
+var passToLeft: function = { ol < sl > rr };
+-- Para el el elemento de la izquierda a la derecha
+var passToRight: function = { or < sr > rl };
+-- Duplica el elemento de la izquierda
+var doubleLeft: function = { or < sr > passToLeft };
+-- Duplica el elemento de la derecha
+var doubleRight: function = { ol < sl > passToRight };
+-- Intercambia los extremos
+var changeExtremes: function = { passToRight ol passToLeft ol < sl passToRight passToRight sl passToLeft passToLeft >  rl rr passToRight}
