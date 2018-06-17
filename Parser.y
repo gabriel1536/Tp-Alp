@@ -28,8 +28,8 @@ import Data.Char
     ')'                  { TPrClose }
     VARDEF               { TVarDef }
     VAR                  { TVar $$ }
-    FWORD                 { TVTWord }
-    MACHINE              { TVTMachine }
+    FWORD                { TVTWord }
+    MACHINE              { TMachDef }
     SETALPHABET          { TSetAlph }
     ADDSTATES            { TAddStates }
     SETINITIALSTATE      { TSetInitState }
@@ -40,12 +40,10 @@ import Data.Char
 %%
 
 Comm    : Comm ';' Comm                         { Seq $1 $3 }
-        | VARDEF VAR Type '=' ValueExp          { VarDef $2 $3 $5 }
+        | VARDEF VAR '=' ValueExp               { VarDef $2 VTWord $4 }
+        | MACHINE VAR '=' ValueExp              { VarDef $2 VTMachine $4 }
         | VAR '=' ValueExp                      { Assign $1 $3 }
         | Functions '(' VAR ',' List ')'        { Apply $1 $3 $5 }
-
-Type : MACHINE                                  { VTMachine }
-     | FWORD                                    { VTWord }
 
 ValueExp    :  '"' VAR '"'                      { $2 }
 
@@ -106,6 +104,7 @@ data Token  = TEquals
             | TSetInitState
             | TSetFStates
             | TSetTrans
+            | TMachDef
             | TEOF
             deriving Show
 
@@ -138,7 +137,9 @@ lexer cont s = case s of
                                        ++ (show $ take 10 unknown) ++ "..."
                    where lexAlphaNum cs@(x:_) = case span isAlphaNum cs of
                                                         ("let", rest)                   -> cont TVarDef rest
-                                                        ("Machine", rest)               -> cont TVarDef rest
+                                                        ("mac", rest)                   -> cont TVTMachine rest
+                                                        ("str", rest)                   -> cont TVTWord rest
+                                                        ("Machine", rest)               -> cont TMachDef rest
                                                         ("setAlphabet", rest)           -> cont TSetAlph rest
                                                         ("addStates", rest)             -> cont TAddStates rest
                                                         ("setInitialState", rest)       -> cont TSetInitState rest

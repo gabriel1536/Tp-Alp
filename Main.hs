@@ -2,37 +2,61 @@
 
 module Main where
 
+import System.IO
 import System.IO.Error
 import Data.List
 import Data.Char
 import Data.Ord
 import System.Console.Haskeline
-
+import Failable 
 
 import Text.PrettyPrint.HughesPJ (render)
 
-import Failable
 import Common
-import Eval
---import PrettyPrinter
 import Parser
+import PrettyPrinter
+data FSM = S String
+
+main :: IO ()
+main = do main2 (S "aa")
+
+main2 :: FSM -> IO ()
+main2 s@(S x)= 
+        do 
+            putStr $ "> "
+            line <- getLine
+            sara <- readFile "programon.fsm"
+            case parseComm sara of
+                Ok m -> ppComm m
+            putStrLn $ "oki"
+            let s' = updateSbyLine line s in
+                return main s'
+
+
+updateSbyLine :: String -> FSM -> FSM
+updateSbyLine _ s = s
+
+
+--import Failable
+--import Eval
+--import PrettyPrinter
 
 -- Módulo principal para ejecutar el intérprete
 
 --------------------------------------------------------------------------------
 
 -- Representa un estado del intérprete
-data State = S { files :: [String],
-                 env :: Env,
-                 working :: Bool
-                } deriving Show
+--data State = S { files :: [String],
+--                 env :: Env,
+--                 working :: Bool
+--                } deriving Show
 
 -- Estado Vacío
-emptyState :: State
-emptyState = S ["programon.fsm"] [] True
+--emptyState :: State
+--emptyState = S ["programon.fsm"] [] True
 
 --------------------------------------------------------------------------------}
-
+{-
 -- Limpia limpia la pantalla
 clearScr :: IO ()
 clearScr = do putStrLn "\ESC[H\ESC[J"
@@ -254,3 +278,4 @@ splitCommand (':':xs) = let (a, b) = span (/= ' ') xs in
                             (_ : c) -> Just (a, c)
                             _ -> Just (a, "")
 splitCommand _ = Nothing
+-}

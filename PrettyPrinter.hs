@@ -82,7 +82,7 @@ ppValue (Apply f l) =   ppRLFunc f Text.PrettyPrint.HughesPJ.<>
 
 -- Pretty Printer de comandos
 ppComm :: Comm -> Doc
-ppComm (VarDef var vt value) =  text "var " Text.PrettyPrint.HughesPJ.<>
+ppComm (VarDef var vt value) =  text "let " Text.PrettyPrint.HughesPJ.<>
                                 text (var ++ ": ") Text.PrettyPrint.HughesPJ.<>
                                 (ppVT vt) Text.PrettyPrint.HughesPJ.<>
                                 text " = " Text.PrettyPrint.HughesPJ.<>
