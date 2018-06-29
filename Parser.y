@@ -39,21 +39,33 @@ import Data.Char
 %right ';'
 %%
 
-Comm    : Comm ';' Comm                         { Seq $1 $3 }
-        | VARDEF VAR '=' ValueExp               { VarDef $2 VTWord $4 }
-        | MACHINE VAR '=' ValueExp              { VarDef $2 VTMachine $4 }
-        | VAR '=' ValueExp                      { Assign $1 $3 }
-        | Functions '(' VAR ',' List ')'        { Apply $1 $3 $5 }
+Comm    : Comm ';' Comm                               { Seq $1 $3 }
+        | VARDEF VAR '=' ValueExp                     { VarDef $2 VTWord $4 }
+        | MACHINE VAR '=' ValueExp                    { VarDef $2 VTMachine $4 }
+        | VAR '=' ValueExp                            { Assign $1 $3 }
+        | Functions_Mul '(' ValueExp ',' List ')'     { Apply $1 $3 $5 }
+        | Functions_Sin '(' ValueExp ',' ValueExp ')' { Apply2 $1 $3 $5 }
+        | Function_Tran '(' ValueExp ',' List2 ')'    { Apply3 $1 $3 $5 }
 
 ValueExp    :  '"' VAR '"'                      { $2 }
 
-Functions   : SETALPHABET                       { SAlph }
-            | ADDSTATES                         { AddS }
-            | SETINITIALSTATE                   { SIS }
-            | SETFINALSTATES                    { SFS }
-            | SETTRANSITIONS                    { STS }
+Functions_Mul   : SETALPHABET                       { SAlph }
+                | ADDSTATES                         { AddS }
+            
+            
+Functions_Sin : SETINITIALSTATE                   { SIS }
+              | SETFINALSTATES                    { SFS }
+            
+Function_Tran : SETTRANSITIONS                   { STS }
 
-List        : '[' List_Char ']'                 { L $2 }
+List         : '[' List_Char ']'                 { L $2 }
+
+List2        : '[' List_Char_tr ']'              { TL $2 }
+
+List_Char_tr : ToupChar ',' List_Char_tr         { $1 : $3 }
+             | ToupChar                          { [$1] }
+
+ToupChar : '(' ValueExp ',' ValueExp ')'         { ($2, $4) }
 
 List_Char   : ValueExp ',' List_Char         { $1 : $3 }
             | ValueExp                       { [$1] }
@@ -137,8 +149,6 @@ lexer cont s = case s of
                                        ++ (show $ take 10 unknown) ++ "..."
                    where lexAlphaNum cs@(x:_) = case span isAlphaNum cs of
                                                         ("let", rest)                   -> cont TVarDef rest
-                                                        ("mac", rest)                   -> cont TVTMachine rest
-                                                        ("str", rest)                   -> cont TVTWord rest
                                                         ("Machine", rest)               -> cont TMachDef rest
                                                         ("setAlphabet", rest)           -> cont TSetAlph rest
                                                         ("addStates", rest)             -> cont TAddStates rest

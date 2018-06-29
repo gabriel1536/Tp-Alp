@@ -23,11 +23,16 @@ data FSMFunc = SAlph
               | None                  
               deriving Show
 
-data Lists  = L [String]               
+data Lists  = L States             
+            deriving Show
+
+data TLists  = TL Transitions
             deriving Show
 
 data Comm   = VarDef Variable VT Variable  -- Definición de variable
             | Assign FWord Variable        -- Asignación en variable
             | Seq Comm Comm                -- Secuencia de comandos ejecutables
             | Apply FSMFunc Variable Lists -- Aplicacion
+            | Apply2 FSMFunc Variable Variable -- Aplicacion
+            | Apply3 FSMFunc Variable TLists -- Aplicacion
             deriving Show

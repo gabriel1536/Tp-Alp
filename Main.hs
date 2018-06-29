@@ -25,12 +25,17 @@ main2 s@(S x)=
         do 
             putStr $ "> "
             line <- getLine
-            sara <- readFile "programon.fsm"
-            case parseComm sara of
-                Ok m -> ppComm m
-            putStrLn $ "oki"
-            let s' = updateSbyLine line s in
-                return main s'
+            case line of 
+                "q" -> return ()
+                _ -> do
+                    sara <- readFile "programon.fsm"
+                    case parseComm sara of
+                        Ok m -> do 
+                                putStrLn $ render $ (ppComm m)
+                        Error r -> putStrLn $ r
+                    let s' = updateSbyLine line s in
+                        return main s'
+            
 
 
 updateSbyLine :: String -> FSM -> FSM

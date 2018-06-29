@@ -7,7 +7,7 @@ import Failable
 import Text.PrettyPrint.HughesPJ
 
 --------------------------------------------------------------------------------
-
+{-
 -- Pretty Printer para resultado de evaluación
 pp :: Failable Env -> Doc
 pp (Ok env) = ppEnv env
@@ -31,15 +31,6 @@ ppVarType (VarList a) = ppIntList a
 ppVarType (VarFunc a) = ppRLFunc a
 
 
-
--- Pretty Printer de listas
-ppLists :: Lists -> Doc
-ppLists (L l) = ppIntList l
-ppLists (Cat l1 l2) =   ppLists l1 Text.PrettyPrint.HughesPJ.<>
-                        text " + " Text.PrettyPrint.HughesPJ.<>
-                        ppLists l2
-ppLists (LVar var) = ppVar var
-
 -- Pretty Printer de variables (etiqueta)
 ppVar :: String -> Doc
 ppVar s = text "var" Text.PrettyPrint.HughesPJ.<>
@@ -48,11 +39,13 @@ ppVar s = text "var" Text.PrettyPrint.HughesPJ.<>
 -- Pretty Printer de lista de enteros
 ppIntList :: [Int] -> Doc
 ppIntList list = ppGenList int (text ", ") (text "[") (text "]") list
-
+-}
+{-
 -- Pretty Printer de tipo de variable (definición)
 ppVT :: VT -> Doc
 ppVT VTFunc = text "func"
 ppVT VTList = text "list"
+
 
 -- Pretty Printer de Funciones Recursivas de Lista
 ppRLFunc :: RLFunc -> Doc
@@ -79,26 +72,45 @@ ppValue (List l) = ppLists l
 ppValue (Apply f l) =   ppRLFunc f Text.PrettyPrint.HughesPJ.<>
                         text " " Text.PrettyPrint.HughesPJ.<>
                         ppLists l
+-}
+{-
+ppList :: [String] -> Doc
+ppList ([]) = text ""
+ppList (x) = text (x ++ "]")
+ppList ((x:xs)) = text ("[" ++ x ++ (ppList (xs)))
+-}
+ppFsmFunc :: FSMFunc -> Doc
+ppFsmFunc x = case x of
+                SAlph -> text "setAlphabet"
+                AddS  -> text "addState"
+                SIS   -> text "setInitialState"
+                SFS   -> text "setFinalState"
+                STS   -> text "setTransitions"
+
 
 -- Pretty Printer de comandos
 ppComm :: Comm -> Doc
 ppComm (VarDef var vt value) =  text "let " Text.PrettyPrint.HughesPJ.<>
                                 text (var ++ ": ") Text.PrettyPrint.HughesPJ.<>
-                                (ppVT vt) Text.PrettyPrint.HughesPJ.<>
                                 text " = " Text.PrettyPrint.HughesPJ.<>
-                                ppValue value
+                                text value
 ppComm (Assign var val) =   text var Text.PrettyPrint.HughesPJ.<>
                             text " = " Text.PrettyPrint.HughesPJ.<>
-                            ppValue val
+                            text val
 ppComm (Seq c1 c2) = ppComm c1 Text.PrettyPrint.HughesPJ.<>
                      text "\n" Text.PrettyPrint.HughesPJ.<>
                      ppComm c2
-
-
+ppComm (Apply fsmf var (L list)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
+                               text ("(" ++ var ++ "," ++ "(ppList list)")
+ppComm (Apply2 fsmf var var1) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
+                               text ("(" ++ var ++ "," ++ (var1) ++ ")")
+ppComm (Apply3 fsmf var (TL tlist)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
+                               text ("(" ++ var ++ "," ++ "ppList tlist")
+                     
 --------------------------------------------------------------------------------
 -- Funciones auxiliares
 
-
+{-
 -- convierte items en doc, separador, init tok, end tok
 ppGenList :: (a -> Doc) -> Doc -> Doc -> Doc -> [a] -> Doc
 ppGenList f sep ini end list = ini Text.PrettyPrint.HughesPJ.<> ppGenList' list Text.PrettyPrint.HughesPJ.<> end
@@ -117,3 +129,4 @@ compFuncToList (Comp f1 f2) =   let l1 = case f1 of
                                              _ -> compFuncToList f2
                                  in l1 ++ l2
 compFuncToList a = [a]
+-}
