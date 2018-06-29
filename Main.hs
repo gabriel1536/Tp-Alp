@@ -31,7 +31,8 @@ main2 s@(S x)=
                     sara <- readFile "programon.fsm"
                     case parseComm sara of
                         Ok m -> do 
-                                putStrLn $ render $ (ppComm m)
+                                 res <- handleComm m s--putStrLn $ render $ (ppComm m)
+                                 main2 res
                         Error r -> putStrLn $ r
                     let s' = updateSbyLine line s in
                         return main s'
@@ -41,6 +42,17 @@ main2 s@(S x)=
 updateSbyLine :: String -> FSM -> FSM
 updateSbyLine _ s = s
 
+
+handleComm :: Comm -> FSM -> IO FSM
+handleComm comm s@(S x) = do 
+                            case comm of
+                                VarDef var vt value -> putStrLn $ var
+                                Assign var val -> putStrLn $ var
+                                Seq c1 c2 -> handleComm c1 s
+                                Apply fsmf var (L list) -> putStrLn $ var 
+                                Apply2 fsmf var var1 -> putStrLn $ var
+                                Apply3 fsmf var (TL tlist) -> putStrLn $ var
+                            return s
 
 --import Failable
 --import Eval
