@@ -1,5 +1,5 @@
 {-# OPTIONS -XRecordWildCards #-}
-
+--
 module Main where
 
 import System.IO
