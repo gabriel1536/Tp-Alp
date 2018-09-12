@@ -1,5 +1,5 @@
 {-# OPTIONS -XRecordWildCards #-}
-
+--
 module Main where
 
 import System.IO
@@ -58,6 +58,17 @@ unknComm = putStrLn $ "Didn't get that, type ':help' for known commands"
 updateSbyLine :: String -> FSM -> FSM
 updateSbyLine _ s = s
 
+
+handleComm :: Comm -> FSM -> IO FSM
+handleComm comm s@(S x) = do 
+                            case comm of
+                                VarDef var vt value -> putStrLn $ var
+                                Assign var val -> putStrLn $ var
+                                Seq c1 c2 -> handleComm c1 s
+                                Apply fsmf var (L list) -> putStrLn $ var 
+                                Apply2 fsmf var var1 -> putStrLn $ var
+                                Apply3 fsmf var (TL tlist) -> putStrLn $ var
+                            return s
 
 --import Failable
 --import Eval

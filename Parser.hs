@@ -557,8 +557,6 @@ lexer cont s = case s of
                                        ++ (show $ take 10 unknown) ++ "..."
                    where lexAlphaNum cs@(x:_) = case span isAlphaNum cs of
                                                         ("let", rest)                   -> cont TVarDef rest
-                                                        ("mac", rest)                   -> cont TVTMachine rest
-                                                        ("str", rest)                   -> cont TVTWord rest
                                                         ("Machine", rest)               -> cont TMachDef rest
                                                         ("setAlphabet", rest)           -> cont TSetAlph rest
                                                         ("addStates", rest)             -> cont TAddStates rest
@@ -598,7 +596,7 @@ parseComm s = parse_Comm s 1
 
 
 {-# LINE 8 "<command-line>" #-}
-{-# LINE 1 "F:/Users/randy/AppData/Local/Temp/ghc13656_0/ghc_2.h" #-}
+{-# LINE 1 "F:/Users/randy/AppData/Local/Temp/ghc19564_0/ghc_2.h" #-}
 
 
 
