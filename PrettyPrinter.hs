@@ -73,12 +73,22 @@ ppValue (Apply f l) =   ppRLFunc f Text.PrettyPrint.HughesPJ.<>
                         text " " Text.PrettyPrint.HughesPJ.<>
                         ppLists l
 -}
-{-
-ppList :: [String] -> Doc
-ppList ([]) = text ""
-ppList (x) = text (x ++ "]")
-ppList ((x:xs)) = text ("[" ++ x ++ (ppList (xs)))
--}
+ppList2 :: [String] -> String 
+ppList2 ([]) =  ""
+ppList2 xs = "[" ++ ppList xs
+
+ppList :: [String] -> String
+ppList (x:[]) =  ("\"" ++ x ++ "\"" ++ "]")
+ppList ((x:xs)) =  ("\"" ++ x ++ "\"" ++ "," ++ (ppList (xs)))
+
+ppTList2 :: [([Char], [Char])] -> String 
+ppTList2 ([]) =  ""
+ppTList2 xs = "[" ++ ppTList xs
+
+ppTList :: [([Char], [Char])] -> String
+ppTList ((x,y):[]) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "]")
+ppTList ((x,y):xs) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "," ++ (ppTList (xs)))
+
 ppFsmFunc :: FSMFunc -> Doc
 ppFsmFunc x = case x of
                 SAlph -> text "setAlphabet"
@@ -101,12 +111,17 @@ ppComm (Seq c1 c2) = ppComm c1 Text.PrettyPrint.HughesPJ.<>
                      text "\n" Text.PrettyPrint.HughesPJ.<>
                      ppComm c2
 ppComm (Apply fsmf var (L list)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ "(ppList list)")
+                               text ("(" ++ var ++ "," ++ (ppList list))
 ppComm (Apply2 fsmf var var1) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ (var1) ++ ")")
+                               text ("(" ++ var ++ "," ++ ("\"" ++ var1 ++ "\"") ++ ")")
 ppComm (Apply3 fsmf var (TL tlist)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ "ppList tlist")
-                     
+                               text ("(" ++ var ++ "," ++ (ppTList tlist))
+
+ppHelpCommands :: Doc
+ppHelpCommands = text ":q | quit interpreter" Text.PrettyPrint.HughesPJ.<>
+                 text "\n" Text.PrettyPrint.HughesPJ.<>
+                 text ":pp_parsed | pretty print parsed .fsm file"
+
 --------------------------------------------------------------------------------
 -- Funciones auxiliares
 

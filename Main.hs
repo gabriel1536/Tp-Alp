@@ -7,6 +7,7 @@ import System.IO.Error
 import Data.List
 import Data.Char
 import Data.Ord
+import Data.List.Split
 import System.Console.Haskeline
 import Failable 
 
@@ -25,18 +26,34 @@ main2 s@(S x)=
         do 
             putStr $ "> "
             line <- getLine
-            case line of 
-                "q" -> return ()
-                _ -> do
-                    sara <- readFile "programon.fsm"
-                    case parseComm sara of
-                        Ok m -> do 
-                                putStrLn $ render $ (ppComm m)
-                        Error r -> putStrLn $ r
-                    let s' = updateSbyLine line s in
-                        return main s'
-            
+            case getOnlyCommand line of 
+                ":q" -> return ()
+                ":pp_parsed" -> do
+                    case getRestOfLine line of
+                        Nothing -> do putStrLn $ "Need more args!"
+                                      return main s
+                        Just fileName -> do sara <- readFile fileName
+                                            case parseComm sara of
+                                                Ok m -> do 
+                                                        putStrLn $ render $ (ppComm m)
+                                                Error r -> putStrLn $ r
+                                            let s' = updateSbyLine line s in
+                                                return main s'
+                ":help" -> do putStrLn $ render $ (ppHelpCommands)
+                              return main s
+                _ -> do unknComm
+                        return main s
+        
+getOnlyCommand :: String -> String
+getOnlyCommand s = (splitOn " " s) !! 0
 
+getRestOfLine :: String -> Maybe String
+getRestOfLine s = case (splitOn " " s) of
+                  [x] -> Nothing
+                  [x,y] -> Just y
+
+unknComm :: IO ()
+unknComm = putStrLn $ "Didn't get that, type ':help' for known commands"
 
 updateSbyLine :: String -> FSM -> FSM
 updateSbyLine _ s = s
