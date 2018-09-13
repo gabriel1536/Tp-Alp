@@ -10,7 +10,7 @@ import Data.Ord
 import Data.List.Split
 import System.Console.Haskeline
 import Failable 
-
+import Control.Exception (try)
 import Text.PrettyPrint.HughesPJ (render)
 
 import Common
@@ -18,32 +18,62 @@ import Parser
 import PrettyPrinter
 data FSM = S String
 
+
 main :: IO ()
 main = do main2 (S "aa")
 
 main2 :: FSM -> IO ()
-main2 s@(S x)= 
-        do 
-            putStr $ "> "
-            line <- getLine
-            case getOnlyCommand line of 
-                ":q" -> return ()
-                ":pp_parsed" -> do
-                    case getRestOfLine line of
-                        Nothing -> do putStrLn $ "Need more args!"
-                                      return main s
-                        Just fileName -> do sara <- readFile fileName
-                                            case parseComm sara of
-                                                Ok m -> do 
-                                                        putStrLn $ render $ (ppComm m)
-                                                Error r -> putStrLn $ r
-                                            let s' = updateSbyLine line s in
-                                                return main s'
-                ":help" -> do putStrLn $ render $ (ppHelpCommands)
-                              return main s
-                _ -> do unknComm
-                        return main s
-        
+main2 s@(S x)= do
+    putStr $ "> "
+    line <- getLine
+    case getOnlyCommand line of 
+        ":q" -> return ()
+        ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
+            args <- getArgs line    
+            fsmcode <- try (readFile $ args !! 1) :: IO (Either SomeException String)
+            case fsmcode of -- checking for existing file
+                Left ex -> do
+                    missingArgsFunc ex
+                    return main s
+                Right content -> do
+                    case parseComm content of -- checking for parser
+                        Ok m -> do 
+                                putStrLn $ render $ (ppComm m)
+                        Error r -> putStrLn $ r
+                    let s' = updateSbyLine line s in
+                        return main s'
+        ":help" -> do 
+            putStrLn $ render $ (ppHelpCommands)
+            return main s
+        ":create_fsm" -> do
+            args <- getArgs line
+            fsmName <- try (args !! 1) :: IO (Either SomeException String)
+            case fsmName of
+                Left ex -> do
+                    missingArgsFunc ex
+                    return main s
+                Right name ->
+                    let s' = addFsmByName name s in
+                        case s' of
+                            Just newState -> return main newState
+                            Nothing -> do
+                                putStrLn "Invalid Name. Try again."
+                                return main s
+        _ -> do 
+            unknComm
+            return main s
+
+addFsmByName :: String -> FSM -> Maybe FSM
+addFsmByName name fsm = 
+
+
+missingArgsFunc :: SomeException -> IO ()
+missingArgsFunc ex = if (isInfixOf "index too large" (show ex)) then (putStrLn "Error: Missing args!") 
+                     else (putStrLn ("Caught Exception: " ++ show ex))
+
+getArgs :: String -> IO [String]
+getArgs line = return (splitOn " " line)
+
 getOnlyCommand :: String -> String
 getOnlyCommand s = (splitOn " " s) !! 0
 
@@ -59,16 +89,16 @@ updateSbyLine :: String -> FSM -> FSM
 updateSbyLine _ s = s
 
 
-handleComm :: Comm -> FSM -> IO FSM
-handleComm comm s@(S x) = do 
-                            case comm of
-                                VarDef var vt value -> putStrLn $ var
-                                Assign var val -> putStrLn $ var
-                                Seq c1 c2 -> handleComm c1 s
-                                Apply fsmf var (L list) -> putStrLn $ var 
-                                Apply2 fsmf var var1 -> putStrLn $ var
-                                Apply3 fsmf var (TL tlist) -> putStrLn $ var
-                            return s
+-- handleComm :: Comm -> FSM -> IO FSM
+-- handleComm comm s@(S x) = do 
+--                             case comm of
+--                                 VarDef var vt value -> putStrLn $ var
+--                                 Assign var val -> putStrLn $ var
+--                                 Seq c1 c2 -> handleComm c1 s
+--                                 Apply fsmf var (L list) -> putStrLn $ var 
+--                                 Apply2 fsmf var var1 -> putStrLn $ var
+--                                 Apply3 fsmf var (TL tlist) -> putStrLn $ var
+--                             return s
 
 --import Failable
 --import Eval
