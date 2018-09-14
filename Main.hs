@@ -18,8 +18,16 @@ import Parser
 import PrettyPrinter
 
 
+-- data FSM = FSM { name        :: String
+--                , alphabet    :: [String]
+--                , states      :: [String]
+--                , iState      :: [String]
+--                , fState      :: [String]
+--                , transitions :: [String]
+--                } deriving (Show)
+
 main :: IO ()
-main = do main2 (["SarasaFsm"])
+main = do main2 [(Fsm {name = "First", alphabet = [], states = [], iState = [], fState = [], transitions = []})]
 
 main2 :: FSM -> IO ()
 main2 s@(x)= do
@@ -54,12 +62,12 @@ main2 s@(x)= do
                 Left ex -> do
                     missingArgsFunc ex
                     main2 s
-                Right name ->
-                    let s' = addFsmByName name s in
+                Right fname ->
+                    let s' = addFsmByName fname s in
                         case s' of
                             Just newState -> do
-                                putStrLn "Ok!"
-                                putStrLn $ newState !! 0
+                                putStr "Ok! Name: "
+                                putStrLn $ name (newState !! 0)
                                 main2 newState
                             Nothing -> do
                                 putStrLn "Invalid Name. Try again."
@@ -69,7 +77,7 @@ main2 s@(x)= do
             main2 s
 
 addFsmByName :: String -> FSM -> Maybe FSM
-addFsmByName name fsm@(xs) = if (name == "") then Nothing else if (notElem name xs) then (Just (name:xs)) else (Nothing)
+addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = [], fState = [], transitions = []}):xs)) else (Nothing)
 
 
 missingArgsFunc :: SomeException -> IO ()

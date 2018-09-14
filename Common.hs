@@ -13,9 +13,16 @@ type IState = [String]
 type FState = [String]
 type Transitions = [(String, String)]
 
-type Fsm = (Alph, States, IState, FState, Transitions)
+--type NameOfFsm = String
+data Fsm = Fsm { name        :: String
+               , alphabet    :: [String]
+               , states      :: [String]
+               , iState      :: [String]
+               , fState      :: [String]
+               , transitions :: [(String, String)]
+               } deriving (Show)
 
-type FSM = [String]
+type FSM = [Fsm]
 
 data FSMFunc = SAlph                    
               | AddS                    

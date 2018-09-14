@@ -74,13 +74,23 @@ ppValue (Apply f l) =   ppRLFunc f Text.PrettyPrint.HughesPJ.<>
                         ppLists l
 -}
 ppFsm :: FSM -> String
-ppFsm s = show s
+ppFsm [] = ""
+ppFsm (x:xs) = ppSingleFsm x ++ "\n" ++ ppFsm xs
+
+ppSingleFsm :: Fsm -> String
+ppSingleFsm s = (name s ++ ": ") ++ "\n" ++
+                "\talphabet: " ++ ppList(alphabet s) ++ "\n" ++
+                "\tstates: " ++ ppList(states s) ++ "\n" ++
+                "\tiState: " ++ ppList(iState s) ++ "\n" ++
+                "\tfState: " ++ ppList(fState s) ++ "\n" ++
+                "\ttransitions: " ++ ppTList(transitions s)
 
 ppList2 :: [String] -> String 
 ppList2 ([]) =  ""
 ppList2 xs = "[" ++ ppList xs
 
 ppList :: [String] -> String
+ppList [] = "[]"
 ppList (x:[]) =  ("\"" ++ x ++ "\"" ++ "]")
 ppList ((x:xs)) =  ("\"" ++ x ++ "\"" ++ "," ++ (ppList (xs)))
 
@@ -89,6 +99,7 @@ ppTList2 ([]) =  ""
 ppTList2 xs = "[" ++ ppTList xs
 
 ppTList :: [([Char], [Char])] -> String
+ppTList ([]) =  "[]"
 ppTList ((x,y):[]) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "]")
 ppTList ((x,y):xs) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "," ++ (ppTList (xs)))
 
