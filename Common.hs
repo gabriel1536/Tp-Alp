@@ -15,6 +15,8 @@ type Transitions = [(String, String)]
 
 type Fsm = (Alph, States, IState, FState, Transitions)
 
+type FSM = [String]
+
 data FSMFunc = SAlph                    
               | AddS                    
               | SIS                    

@@ -16,55 +16,60 @@ import Text.PrettyPrint.HughesPJ (render)
 import Common
 import Parser
 import PrettyPrinter
-data FSM = S String
 
 
 main :: IO ()
-main = do main2 (S "aa")
+main = do main2 (["SarasaFsm"])
 
 main2 :: FSM -> IO ()
-main2 s@(S x)= do
+main2 s@(x)= do
     putStr $ "> "
     line <- getLine
     case getOnlyCommand line of 
         ":q" -> return ()
+        ":print_fsm" -> do
+            putStrLn $ ppFsm s
+            main2 s
         ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
             args <- getArgs line    
             fsmcode <- try (readFile $ args !! 1) :: IO (Either SomeException String)
             case fsmcode of -- checking for existing file
                 Left ex -> do
                     missingArgsFunc ex
-                    return main s
+                    main2 s
                 Right content -> do
                     case parseComm content of -- checking for parser
                         Ok m -> do 
                                 putStrLn $ render $ (ppComm m)
                         Error r -> putStrLn $ r
                     let s' = updateSbyLine line s in
-                        return main s'
+                        main2 s'
         ":help" -> do 
             putStrLn $ render $ (ppHelpCommands)
-            return main s
+            main2 s
         ":create_fsm" -> do
             args <- getArgs line
-            fsmName <- try (args !! 1) :: IO (Either SomeException String)
+            fsmName <- try (return (args !! 1)) :: IO (Either SomeException String)
             case fsmName of
                 Left ex -> do
                     missingArgsFunc ex
-                    return main s
+                    main2 s
                 Right name ->
                     let s' = addFsmByName name s in
                         case s' of
-                            Just newState -> return main newState
+                            Just newState -> do
+                                putStrLn "Ok!"
+                                putStrLn $ newState !! 0
+                                main2 newState
                             Nothing -> do
                                 putStrLn "Invalid Name. Try again."
-                                return main s
+                                main2 s
         _ -> do 
             unknComm
-            return main s
+            main2 s
 
 addFsmByName :: String -> FSM -> Maybe FSM
-addFsmByName name fsm = 
+addFsmByName name fsm@(xs) = if (name == "") then Nothing else if (notElem name xs) then (Just (name:xs)) else (Nothing)
 
 
 missingArgsFunc :: SomeException -> IO ()

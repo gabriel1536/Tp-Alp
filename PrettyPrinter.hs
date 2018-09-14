@@ -73,6 +73,9 @@ ppValue (Apply f l) =   ppRLFunc f Text.PrettyPrint.HughesPJ.<>
                         text " " Text.PrettyPrint.HughesPJ.<>
                         ppLists l
 -}
+ppFsm :: FSM -> String
+ppFsm s = show s
+
 ppList2 :: [String] -> String 
 ppList2 ([]) =  ""
 ppList2 xs = "[" ++ ppList xs
