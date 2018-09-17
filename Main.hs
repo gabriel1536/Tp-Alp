@@ -1,9 +1,12 @@
 {-# OPTIONS -XRecordWildCards #-}
+{-# OPTIONS -XOverloadedStrings #-}
+
 --
 module Main where
 
 import System.IO
 import System.IO.Error
+import Data.Text (pack, unpack,strip)
 import Data.List
 import Data.Char
 import Data.Ord
@@ -32,60 +35,80 @@ main = do main2 [(Fsm {name = "First", alphabet = [], states = [], iState = [], 
 main2 :: FSM -> IO ()
 main2 s@(x)= do
     putStr $ "> "
-    line <- getLine
-    case getOnlyCommand line of 
-        ":q" -> return ()
-        ":print_fsm" -> do
-            putStrLn $ ppFsm s
-            main2 s
-        ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
-            args <- getArgs line    
-            fsmcode <- try (readFile $ args !! 1) :: IO (Either SomeException String)
-            case fsmcode of -- checking for existing file
-                Left ex -> do
-                    missingArgsFunc ex
-                    main2 s
-                Right content -> do
-                    case parseComm content of -- checking for parser
-                        Ok m -> do 
-                                putStrLn $ render $ (ppComm m)
-                        Error r -> putStrLn $ r
-                    let s' = updateSbyLine line s in
-                        main2 s'
-        ":help" -> do 
-            putStrLn $ render $ (ppHelpCommands)
-            main2 s
-        ":create_fsm" -> do
-            args <- getArgs line
-            fsmName <- try (return (args !! 1)) :: IO (Either SomeException String)
-            case fsmName of
-                Left ex -> do
-                    missingArgsFunc ex
-                    main2 s
-                Right fname ->
-                    let s' = addFsmByName fname s in
-                        case s' of
-                            Just newState -> do
-                                putStr "Ok! Name: "
-                                putStrLn $ name (newState !! 0)
-                                main2 newState
-                            Nothing -> do
-                                putStrLn "Invalid Name. Try again."
+    _line <- getLine
+    let line = unpack (strip $ pack _line) in
+        case getOnlyCommand line of 
+            ":q" -> return ()
+            ":print_fsm" -> do
+                putStrLn $ ppFsm s
+                main2 s
+            ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
+                _args <- getArgs line    
+                case _args of
+                    Nothing -> do
+                        putStrLn "Not enough arguments!"
+                        main2 s
+                    Just args -> do
+                        fsmcode <- try (readFile $ args !! 0) :: IO (Either SomeException String)
+                        case fsmcode of -- checking for existing file
+                            Left ex -> do
+                                missingArgsFunc ex
                                 main2 s
-        _ -> do 
-            unknComm
-            main2 s
+                            Right content -> do
+                                case parseComm content of -- checking for parser
+                                    Ok m -> do 
+                                            putStrLn $ render $ (ppComm m)
+                                    Error r -> putStrLn $ r
+                                let s' = updateSbyLine line s in
+                                    main2 s'
+            ":help" -> do 
+                putStrLn $ render $ (ppHelpCommands)
+                main2 s
+            ":create_fsm" -> do
+                _args <- getArgs line    
+                case _args of
+                    Nothing -> do
+                        putStrLn "Not enough arguments!"
+                        main2 s
+                    Just args -> do
+                        fsmName <- try (return (args !! 0)) :: IO (Either SomeException String)
+                        case fsmName of
+                            Left ex -> do
+                                missingArgsFunc ex
+                                main2 s
+                            Right fname ->
+                                let s' = addFsmByName fname s in
+                                    case s' of
+                                        Just newState -> do
+                                            putStr "Ok! Name: "
+                                            putStrLn $ name (newState !! 0)
+                                            main2 newState
+                                        Nothing -> do
+                                            putStrLn "Invalid Name. Try again."
+                                            main2 s
+            -- ":addStateTo" -> do
+            --     _args <- getArgs line
+            _ -> do 
+                unknComm
+                main2 s
 
+
+                
 addFsmByName :: String -> FSM -> Maybe FSM
 addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = [], fState = [], transitions = []}):xs)) else (Nothing)
-
 
 missingArgsFunc :: SomeException -> IO ()
 missingArgsFunc ex = if (isInfixOf "index too large" (show ex)) then (putStrLn "Error: Missing args!") 
                      else (putStrLn ("Caught Exception: " ++ show ex))
 
-getArgs :: String -> IO [String]
-getArgs line = return (splitOn " " line)
+getArgs :: String -> IO (Maybe [String])
+getArgs line = 
+    let args = (splitOn " " line) in
+        case length args of
+            0 -> return Nothing
+            1 -> return Nothing
+            2 -> if ((args !! 1) == "") then (return Nothing) else (return (Just (tail args)))
+            _ -> return (Just (tail args))
 
 getOnlyCommand :: String -> String
 getOnlyCommand s = (splitOn " " s) !! 0
