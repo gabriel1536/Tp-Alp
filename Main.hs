@@ -30,72 +30,46 @@ import PrettyPrinter
 --                } deriving (Show)
 
 main :: IO ()
-main = do main2 [(Fsm {name = "First", alphabet = [], states = [], iState = [], fState = [], transitions = []})]
+main = do main2 [(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})]
 
 main2 :: FSM -> IO ()
-main2 s@(x)= do
+main2 fsm@(x)= do
     putStr $ "> "
     _line <- getLine
     let line = unpack (strip $ pack _line) in
         case getOnlyCommand line of 
             ":q" -> return ()
-            ":print_fsm" -> do
-                putStrLn $ ppFsm s
-                main2 s
+            ":print_fsm" -> do -- print every fsm (fix)
+                putStrLn $ ppFsm fsm
+                main2 fsm
             ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
                 args <- getArgs 0 line    
-                checkForArguments s args
-                fsmcode <- try (readFile $ (getJustString args) !! 0) :: IO (Either SomeException String)
-                case fsmcode of -- checking for existing file
-                    Left ex -> do
-                        missingArgsFunc ex
-                        main2 s
-                    Right content -> do
-                        case parseComm content of -- checking for parser
-                            Ok m -> do 
-                                    putStrLn $ render $ (ppComm m)
-                            Error r -> putStrLn $ r
-                        let s' = updateSbyLine line s in
-                            main2 s'
+                checkForArguments fsm args
+                ppParsedWork fsm args
             ":help" -> do 
                 putStrLn $ render $ (ppHelpCommands)
-                main2 s
-            ":create_fsm" -> do
+                main2 fsm
+            ":create_fsm" -> do -- :create_fsm nameOfNewFsm
                 args <- getArgs 1 line    
-                checkForArguments s args
-                fsmName <- try (return ((getJustString args) !! 0)) :: IO (Either SomeException String)
-                case fsmName of
-                    Left ex -> do
-                        missingArgsFunc ex
-                        main2 s
-                    Right fname ->
-                        let s' = addFsmByName fname s in
-                            case s' of
-                                Just newState -> do
-                                    putStr "Ok! Name: "
-                                    putStrLn $ name (newState !! 0)
-                                    main2 newState
-                                Nothing -> do
-                                    putStrLn "Invalid Name. Try again."
-                                    main2 s
-            ":addStateTo" -> do
+                checkForArguments fsm args
+                createFsmWork fsm args
+            ":addStateTo" -> do -- :addStateTo FSM nameOfNewState
                 args <- getArgs 2 line
-                checkForArguments s args
-                case (checkForExistingStates s $ (getJustString args) !! 1) of
-                    False -> do
-                        putStrLn $ "Not a valid state for FSM {" ++ ((getJustString args) !! 0) ++ "}"
-                        main2 s
-                    True -> 
-                        let newState = addStateTo s ((getJustString args) !! 0) ((getJustString args) !! 1) in
-                            do putStr "Ok!"
-                               main2 newState
+                checkForArguments fsm args
+                addStateToWork fsm args
+            ":addIStateTo" -> do -- :addIStateTo FSM nameOfExistingState
+                args <- getArgs 2 line
+                checkForArguments fsm args
+                addIStateToWork fsm args
+            ":addFStateTo" -> do -- :addFStateTo FSM nameOfExistingState
+                args <- getArgs 2 line
+                checkForArguments fsm args
+                addFStateToWork fsm args
             _ -> do 
                 unknComm
-                main2 s
+                main2 fsm
 
-checkForExistingStates :: FSM -> String -> Bool
-checkForExistingStates fsm state = let states = fsmNames fsm in
-    foldl (||) False (map (\sname -> sname == state) states) 
+
 
 fsmNames :: FSM -> [String]
 fsmNames [] = []
@@ -104,27 +78,6 @@ fsmNames (x:xs) = (name x) : (fsmNames xs)
 getJustString :: Maybe [String] -> [String]
 getJustString (Just a) = a
 getJustString Nothing = []
-
-checkForArguments :: FSM -> Maybe [String] -> IO ()
-checkForArguments s Nothing = do
-    putStrLn "Not enough arguments!"
-    main2 s
-checkForArguments _ _ = putStr "" -- fix? I guess... It works though
-
-addStateTo :: FSM -> String -> String -> FSM
-addStateTo [] fsmName newStateName = []
-addStateTo (x:xs) fsmName newStateName = let compareName = (name x) == fsmName in
-    case compareName of
-        True -> let x' = x { states = newStateName : (states x) } in
-            [x'] ++ xs
-        False -> [x] ++ (addStateTo xs fsmName newStateName)
-
-addFsmByName :: String -> FSM -> Maybe FSM
-addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = [], fState = [], transitions = []}):xs)) else (Nothing)
-
-missingArgsFunc :: SomeException -> IO ()
-missingArgsFunc ex = if (isInfixOf "index too large" (show ex)) then (putStrLn "Error: Missing args!") 
-                     else (putStrLn ("Caught Exception: " ++ show ex))
 
 getArgs :: Int -> String -> IO (Maybe [String])
 getArgs expectedArgs line = 
@@ -150,257 +103,146 @@ unknComm = putStrLn $ "Didn't get that, type ':help' for known commands"
 updateSbyLine :: String -> FSM -> FSM
 updateSbyLine _ s = s
 
+--------------------------------------------------
+--------------------------------------------------
+              -- control funcs --
 
--- handleComm :: Comm -> FSM -> IO FSM
--- handleComm comm s@(S x) = do 
---                             case comm of
---                                 VarDef var vt value -> putStrLn $ var
---                                 Assign var val -> putStrLn $ var
---                                 Seq c1 c2 -> handleComm c1 s
---                                 Apply fsmf var (L list) -> putStrLn $ var 
---                                 Apply2 fsmf var var1 -> putStrLn $ var
---                                 Apply3 fsmf var (TL tlist) -> putStrLn $ var
---                             return s
+checkForArguments :: FSM -> Maybe [String] -> IO ()
+checkForArguments s Nothing = do
+    putStrLn "Not enough arguments!"
+    main2 s
+checkForArguments _ _ = putStr "" -- fix? I guess... It works though
 
---import Failable
---import Eval
---import PrettyPrinter
+missingArgsFunc :: SomeException -> IO ()
+missingArgsFunc ex = if (isInfixOf "index too large" (show ex)) then (putStrLn "Error: Missing args!") 
+                    else (putStrLn ("Caught Exception: " ++ show ex))
 
--- Módulo principal para ejecutar el intérprete
+checkForExistingStates :: FSM -> String -> Bool
+checkForExistingStates fsm state = let states = fsmNames fsm in
+    foldl (||) False (map (\sname -> sname == state) states) 
 
---------------------------------------------------------------------------------
+stateInList :: [String] -> String -> Bool
+stateInList states st = foldl (||) False (map (\s -> s == st) states)
 
--- Representa un estado del intérprete
---data State = S { files :: [String],
---                 env :: Env,
---                 working :: Bool
---                } deriving Show
-
--- Estado Vacío
---emptyState :: State
---emptyState = S ["programon.fsm"] [] True
-
---------------------------------------------------------------------------------}
-{-
--- Limpia limpia la pantalla
-clearScr :: IO ()
-clearScr = do putStrLn "\ESC[H\ESC[J"
-              putStrLn "Finally, a FSM interpreter, yay!."
-
--- Código de colores
-blackColor       = 30
-redColor         = 31
-greenColor       = 32
-yellowColor      = 33
-blueColor        = 34
-magentaColor     = 35
-cyanColor        = 36
-whiteColor       = 37
-
--- Imprime un texto con un color
-printWColor :: String -> Int -> InputT IO ()
-printWColor x color = outputStrLn $ "\x1b[" ++ show color ++ "m" ++ x ++ "\x1b[0m"
-
--- Imprime un error
-printError :: String -> InputT IO ()
-printError x = printWColor x redColor
-
--- Imprime un mensaje verde
-printOk :: String -> InputT IO ()
-printOk x = printWColor x greenColor
-
--- Función principal
-main :: IO ()
-main = do clearScr
-          s <- reload emptyState
-          runInputT defaultSettings (mainLoop s)
-
--- Bucle principal del intérprete
-mainLoop :: State -> InputT IO ()
-mainLoop s@(S{..}) = do 
-                        minput <- getInputLine "> "
-                        case minput of
-                            Nothing -> return ()
-                            Just "" -> mainLoop s
-                            Just input -> do 
-                                            c <- parseCommand input
-                                            case c of 
-                                                Just command -> 
-                                                    do ns <- handleCommand command s
-                                                       mainLoop ns
-                                                _ -> do ns <- runStringSecure input s
-                                                        mainLoop ns 
-
-{-
-mainLoop s@(S{..}) = if not working then return () else
-                     do  maybeLine <- getInputLine "> "
-                         case maybeLine of
-                             Nothing -> do putStrLn ""
-                                           return () -- EOF / control-d
-                             Just "" -> mainLoop s
-                             Just line -> do putHistory line
-                                             c <- parseCommand line
-                                             case c of
-                                                 Just command -> do ns <- handleCommand command s
-                                                                    mainLoop ns
-                                                 _ -> do ns <- runStringSecure line s
-                                                         mainLoop ns
--}
---------------------------------------------------------------------------------
--- Comandos
-
--- Representa un comando
-data Command    = Load String
-                | Reload
-                | Disassociate String
-                | Print Variable
-                | Reset
-                | Help
-                | ClearScreen
-                | Exit
-                | Null String
-                deriving Show
-
--- Lee un comando y retorna un comando opcional
-parseCommand :: String -> InputT IO (Maybe Command)
-parseCommand str =  if null str then return $ Just (Help) else
-                    case splitCommand str of
-                        Nothing -> return Nothing
-                        Just (com, rest) -> case (map toLower com) of
-                                                "load"         -> return $ Just (Load rest)
-                                                "l"            -> return $ Just (Load rest)
-                                                "reload"       -> return $ Just (Reload)
-                                                "r"            -> return $ Just (Reload)
-                                                "disassociate" -> return $ Just (Disassociate rest)
-                                                "d"            -> return $ Just (Disassociate rest)
-                                                "print"        -> return $ Just (Print rest)
-                                                "p"            -> return $ Just (Print rest)
-                                                "reset"        -> return $ Just (Reset)
-                                                "c"            -> return $ Just (Reset)
-                                                "help"         -> return $ Just (Help)
-                                                "h"            -> return $ Just (Help)
-                                                "?"            -> return $ Just (Help)
-                                                "clearscreen"  -> return $ Just (ClearScreen)
-                                                "cls"          -> return $ Just (ClearScreen)
-                                                "exit"         -> return $ Just (Exit)
-                                                "quit"         -> return $ Just (Exit)
-                                                "q"            -> return $ Just (Exit)
-                                                _              -> return $ Just (Null com)
-
--- Maneja un comando:
--- Toma el comando a trabajar y el estado actual
-handleCommand :: Command -> State -> InputT IO State
-handleCommand comm s@(S {..}) = do  case comm of
-                                        Load path -> addFile path s
-                                        Reload ->   reload s
-                                        Disassociate f -> do printOk $ "Se ha desasociado el archivo \"" ++ f ++ "\""
-                                                             return s { files =  delete f files }
-                                        Print var -> printVar var s
-                                        Reset -> do putStrLn "Reiniciando entorno"
-                                                    reload emptyState
-                                        Help -> do printHelp
-                                                   return s
-                                        ClearScreen -> do clearScr
-                                                          return s
-                                        Exit -> do return $ s {working = False}
-                                        Null com -> do  printError $ "Error: El comando \"" ++ com ++ "\" no existe."
-                                                        return s
-
---------------------------------------------------------------------------------
-
--- Recarga el sistema
-reload :: State -> InputT IO State
-reload s@(S {..}) = loadFilesSecure files s
+              -- control funcs --
+--------------------------------------------------
+--------------------------------------------------
 
 
--- Carga una lista de achivos de manera segura
--- Esto es se carga todo o nada
-loadFilesSecure :: [String] -> State -> InputT IO State
-loadFilesSecure files s = let ns = s {env = []} in
-                          do temp <- loadFiles files ns ns
-                             case temp of
-                               Ok state -> return state
-                               Error err -> do  printError err
-                                                return s
-
--- Carga una lista de archivos en un estado (Puede fallar, esto debe ser capturado)
-loadFiles :: [String] -> State -> State -> InputT IO (Failable State)
-loadFiles [] s _ = do printOk "Carga completa"
-                      return (Ok s)
-loadFiles (x:xs) s original = do temp <- loadFile x s
-                                 case temp of
-                                    Ok ns -> loadFiles xs ns original
-                                    Error err -> return (Error err)
-
--- Carga un archivo en un estado
-loadFile :: String -> State -> InputT IO (Failable State)
-loadFile path s = do c <- tryIOError (readFile path)
-                     case c of
-                         Left _ -> return (Error $ "No se pudo leer el archivo \"" ++ path ++ "\".")
-                         Right content -> do putStrLn $ "Cargando \"" ++ path ++ "\"."
-                                             temp <- runString content s
-                                             case temp of
-                                                 Ok ns -> return (Ok ns)
-                                                 Error err -> return (Error err)
-
--- Evalua un String y retorna un estado que o bien contiene el resultado de toda la
--- ejecución o el estado original si hubo algún fallo
-runStringSecure :: String -> State -> InputT IO State
-runStringSecure content s = do  temp <- runString content s
-                                case temp of
-                                    Ok ns -> return ns
-                                    Error err ->  do printError err
-                                                     return s
-
--- Evalua un String de FRL. Retorna un entorno que puede fallar
-runString :: String -> State -> IO (Failable State)
-runString content s@(S{..}) = case parseComm content of
-                                Ok comm -> case eval' comm env of
-                                                Ok ns ->     return (Ok $ s {env = ns})
-                                                Error err -> return (Error err)
-                                Error err -> return (Error err)
-
--- Agrega un archivo a la lista de archvos si este no está presenta
-addFile :: String -> State -> InputT IO State
-addFile path s@(S {..}) = if elem path files
-                          then do printError $ "El archivo \"" ++ path ++ "\" ya estaba agregado."
-                                  return s
-                          else let ns = s {files = files ++ [path]} in
-                          do  printOk $ "El archivo \"" ++ path ++ "\" se há agregado."
-                              loadFilesSecure [path] ns
-                              return ns
-
--- Toma el nombre de una variable y un estado e intenta imprimir su contenido
-printVar :: String -> State -> IO State
-printVar [] s@(S {..}) = do putStrLn $ render $ ppEnv env
-                            return s
-printVar var s@(S{..}) = do case lookup var env of
-                                Just a -> putStrLn $ render $ ppVarType a
-                                _ -> printError $ "No se ha encontrado la variable \"" ++ var ++ "\""
-                            return s
-
--- Imprime el mensaje de ayuda al usuario
-printHelp :: IO ()
-printHelp = let helps =   [ (":l | :load", "Carga y asocia un archivo a la sesión actual.") ,
-                            (":r | :reload","Recarga todos los archivos (Se perderán las variables ingresadas en el intérprete)"),
-                            (":d | :disassociate", "Quita de la lista de archivos a cargar el archivo ingresado (No se recargan las variables)"),
-                            (":p | :print", "Muestra el contenido de una variable, o el entorno si no se ingresa el nombre de la variable"),
-                            (":c | :reset", "Reinicia el intérprete"),
-                            (":h | :? | :help", "Imprime la ayuda"),
-                            (":cls | :clearscreen", "Limpia el contenido de la pantalla"),
-                            (":q | :exit", "Sale del intérprete") ]
-                len = 2 + (length $ maximumBy (comparing length) $ map fst helps)
-                list = map (\(x, y) -> " " ++ x ++ (generateWhite $ len - (length x)) ++ y) helps
-            in do mapM_ putStrLn list
-                    where  generateWhite :: Int -> String
-                           generateWhite 0 = ""
-                           generateWhite n = " " ++ (generateWhite $ n - 1)
 
 
-splitCommand :: String -> Maybe (String, String)
-splitCommand (':':xs) = let (a, b) = span (/= ' ') xs in
-                        case b of
-                            (_ : c) -> Just (a, c)
-                            _ -> Just (a, "")
-splitCommand _ = Nothing
--}
+--------------------------------------------------
+--------------------------------------------------
+              -- state mod funcs --
+
+addStateTo :: FSM -> String -> String -> FSM
+addStateTo [] _ _ = []
+addStateTo (x:xs) fsmName newStateName = let compareName = (name x) == fsmName in
+    case compareName of
+        True -> let x' = x { states = newStateName : (states x) } in
+            [x'] ++ xs
+        False -> [x] ++ (addStateTo xs fsmName newStateName)
+
+addIStateTo :: FSM -> String -> String -> (String, FSM)
+addIStateTo [] _ _ = ("",[])
+addIStateTo (x:xs) fsmName newIStateName = let compareName = (name x) == fsmName in
+    case compareName of
+        True -> if (stateInList (states x) newIStateName) then
+            (let x' = x { iState = newIStateName } in
+                ("Ok!" ,[x'] ++ xs)) else ("Not a valid state for {" ++ name x ++ "}", (x:xs))
+        False -> ("",[x] ++ snd (addIStateTo xs fsmName newIStateName))
+
+addFStateTo :: FSM -> String -> String -> (String, FSM)
+addFStateTo [] _ _ = ("",[])
+addFStateTo (x:xs) fsmName newFStateName = let compareName = (name x) == fsmName in
+    case compareName of
+        True -> if (stateInList (states x) newFStateName) then
+            (case (stateInList (fState x) newFStateName) of
+                True -> ("final state already assigned for {" ++ name x ++ "}", (x:xs))
+                False -> 
+                    (let x' = x { fState = newFStateName : (fState x) } in
+                        ("Ok!" ,[x'] ++ xs))) else ("Not a valid state for {" ++ name x ++ "}", (x:xs))
+        False -> ("",[x] ++ snd (addFStateTo xs fsmName newFStateName))
+
+addFsmByName :: String -> FSM -> Maybe FSM
+addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = "", fState = [], transitions = []}):xs)) else (Nothing)
+              
+              -- state mod funcs --
+--------------------------------------------------
+--------------------------------------------------
+
+
+
+
+--------------------------------------------------
+--------------------------------------------------
+                -- aux funcs --
+ppParsedWork :: FSM -> Maybe [String] -> IO ()
+ppParsedWork fsm args = do
+    fsmcode <- try (readFile $ (getJustString args) !! 0) :: IO (Either SomeException String)
+    case fsmcode of -- checking for existing file
+        Left ex -> do
+            missingArgsFunc ex
+            main2 fsm
+        Right content -> do
+            case parseComm content of -- checking for parser
+                Ok m -> do 
+                        putStrLn $ render $ (ppComm m)
+                Error r -> putStrLn $ r
+            main2 fsm
+
+addStateToWork :: FSM -> Maybe [String] -> IO ()
+addStateToWork fsm args = 
+    case (checkForExistingStates fsm $ (getJustString args) !! 0) of
+        False -> do
+            putStrLn $ "Not a valid state for FSM {" ++ ((getJustString args) !! 0) ++ "}"
+            main2 fsm
+        True -> 
+            let newState = addStateTo fsm ((getJustString args) !! 0) ((getJustString args) !! 1) in
+                do putStrLn "Ok!"
+                   main2 newState   
+
+addIStateToWork :: FSM -> Maybe [String] -> IO ()
+addIStateToWork fsm args = 
+    case (checkForExistingStates fsm $ (getJustString args) !! 0) of
+        False -> do
+            putStrLn $ "Not a valid state for FSM {" ++ ((getJustString args) !! 0) ++ "}"
+            main2 fsm
+        True -> 
+            let (str, newState) = addIStateTo fsm ((getJustString args) !! 0) ((getJustString args) !! 1) in
+                do putStrLn str
+                   main2 newState
+
+addFStateToWork :: FSM -> Maybe [String] -> IO ()
+addFStateToWork fsm args = 
+    case (checkForExistingStates fsm $ (getJustString args) !! 0) of
+        False -> do
+            putStrLn $ "Not a valid state for FSM {" ++ ((getJustString args) !! 0) ++ "}"
+            main2 fsm
+        True -> 
+            let (str, newState) = addFStateTo fsm ((getJustString args) !! 0) ((getJustString args) !! 1) in
+                do putStrLn str
+                   main2 newState
+
+createFsmWork :: FSM -> Maybe [String] -> IO ()
+createFsmWork fsm args = do
+    fsmName <- try (return ((getJustString args) !! 0)) :: IO (Either SomeException String)
+    case fsmName of
+        Left ex -> do
+            missingArgsFunc ex
+            main2 fsm
+        Right fname ->
+            let s' = addFsmByName fname fsm in
+                case s' of
+                    Just newState -> do
+                        putStr "Ok! Name: "
+                        putStrLn $ name (newState !! 0)
+                        main2 newState
+                    Nothing -> do
+                        putStrLn "Invalid Name. Try again."
+                        main2 fsm
+
+                -- aux funcs --   
+--------------------------------------------------
+--------------------------------------------------                     
+

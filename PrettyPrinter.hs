@@ -79,11 +79,11 @@ ppFsm (x:xs) = ppSingleFsm x ++ "\n" ++ ppFsm xs
 
 ppSingleFsm :: Fsm -> String
 ppSingleFsm s = (name s ++ ": ") ++ "\n" ++
-                "\talphabet: " ++ ppList(alphabet s) ++ "\n" ++
-                "\tstates: " ++ ppList(states s) ++ "\n" ++
-                "\tiState: " ++ ppList(iState s) ++ "\n" ++
-                "\tfState: " ++ ppList(fState s) ++ "\n" ++
-                "\ttransitions: " ++ ppTList(transitions s)
+                "\talphabet: " ++ ppList2(alphabet s) ++ "\n" ++
+                "\tstates: " ++ ppList2(states s) ++ "\n" ++
+                "\tiState: " ++ "\"" ++ iState s ++ "\"" ++ "\n" ++
+                "\tfState: " ++ ppList2(fState s) ++ "\n" ++
+                "\ttransitions: " ++ ppTList2(transitions s)
 
 ppList2 :: [String] -> String 
 ppList2 ([]) =  ""
@@ -111,7 +111,6 @@ ppFsmFunc x = case x of
                 SFS   -> text "setFinalState"
                 STS   -> text "setTransitions"
 
-
 -- Pretty Printer de comandos
 ppComm :: Comm -> Doc
 ppComm (VarDef var vt value) =  text "let " Text.PrettyPrint.HughesPJ.<>
@@ -125,11 +124,11 @@ ppComm (Seq c1 c2) = ppComm c1 Text.PrettyPrint.HughesPJ.<>
                      text "\n" Text.PrettyPrint.HughesPJ.<>
                      ppComm c2
 ppComm (Apply fsmf var (L list)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ (ppList list))
+                               text ("(" ++ var ++ "," ++ (ppList2 list) ++ ")")
 ppComm (Apply2 fsmf var var1) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
                                text ("(" ++ var ++ "," ++ ("\"" ++ var1 ++ "\"") ++ ")")
 ppComm (Apply3 fsmf var (TL tlist)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ (ppTList tlist))
+                               text ("(" ++ var ++ "," ++ (ppTList2 tlist) ++ ")")
 
 ppHelpCommands :: Doc
 ppHelpCommands = text ":q | quit interpreter" Text.PrettyPrint.HughesPJ.<>

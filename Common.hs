@@ -17,7 +17,7 @@ type Transitions = [(String, String)]
 data Fsm = Fsm { name        :: String
                , alphabet    :: [String]
                , states      :: [String]
-               , iState      :: [String]
+               , iState      :: String
                , fState      :: [String]
                , transitions :: [(String, String)]
                } deriving (Show)
