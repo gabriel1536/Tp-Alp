@@ -2,7 +2,6 @@ module Eval where
 
 import Common
 import Failable
-import RLF
 
 import Control.Applicative (Applicative(..))
 import Control.Monad       (liftM, ap)

@@ -20,7 +20,6 @@ import Common
 import Parser
 import PrettyPrinter
 
-
 -- data FSM = FSM { name        :: String
 --                , alphabet    :: [String]
 --                , states      :: [String]
@@ -30,7 +29,7 @@ import PrettyPrinter
 --                } deriving (Show)
 
 main :: IO ()
-main = do main2 [(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})]
+main = main2 [(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})]
 
 main2 :: FSM -> IO ()
 main2 fsm@(x)= do
@@ -65,11 +64,20 @@ main2 fsm@(x)= do
                 args <- getArgs 2 line
                 checkForArguments fsm args
                 addFStateToWork fsm args
+            ":addTransTo" -> do -- :addTransTo FSM nameOfExistingState1 nameOfExistingState2
+                args <- getArgs 3 line
+                checkForArguments fsm args
+                addTransToWork fsm args
             _ -> do 
                 unknComm
                 main2 fsm
 
 
+
+
+--------------------------------------------------
+--------------------------------------------------
+              -- get/set funcs --
 
 fsmNames :: FSM -> [String]
 fsmNames [] = []
@@ -83,7 +91,7 @@ getArgs :: Int -> String -> IO (Maybe [String])
 getArgs expectedArgs line = 
     let args = (splitOn " " line) in
         if ((length args) - 1 < expectedArgs) then (return Nothing) else -- (-1) means 'ignoring :command'
-            case length args of
+            case length args of -- not the greatest logic ever
                 0 -> return Nothing
                 1 -> return Nothing
                 2 -> if ((args !! 1) == "") then (return Nothing) else (return (Just (tail args)))
@@ -100,8 +108,13 @@ getRestOfLine s = case (splitOn " " s) of
 unknComm :: IO ()
 unknComm = putStrLn $ "Didn't get that, type ':help' for known commands"
 
-updateSbyLine :: String -> FSM -> FSM
-updateSbyLine _ s = s
+              -- get/set funcs --
+--------------------------------------------------
+--------------------------------------------------
+
+
+
+
 
 --------------------------------------------------
 --------------------------------------------------
@@ -224,6 +237,18 @@ addFStateToWork fsm args =
                 do putStrLn str
                    main2 newState
 
+addTransToWork :: FSM -> Maybe [String] -> IO ()
+addTransToWork fsm args = 
+    case ((checkForExistingStates fsm $ (getJustString args) !! 0) && (checkForExistingStates fsm $ (getJustString args) !! 1)) of
+        False -> do
+            putStrLn $ "Not a valid pair of states for the FSM {" ++ ((getJustString args) !! 0) ++ "}"
+            main2 fsm
+        True -> 
+            let (str, newState) = addFStateTo fsm ((getJustString args) !! 0) ((getJustString args) !! 1) in
+                do putStrLn str
+                    main2 newState
+
+
 createFsmWork :: FSM -> Maybe [String] -> IO ()
 createFsmWork fsm args = do
     fsmName <- try (return ((getJustString args) !! 0)) :: IO (Either SomeException String)
@@ -244,5 +269,4 @@ createFsmWork fsm args = do
 
                 -- aux funcs --   
 --------------------------------------------------
---------------------------------------------------                     
-
+--------------------------------------------------
