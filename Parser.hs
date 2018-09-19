@@ -28,7 +28,7 @@ data HappyAbsSyn t4 t5 t6 t7 t8 t9 t10 t11 t12 t13
 	| HappyAbsSyn13 t13
 
 happyExpList :: Happy_Data_Array.Array Int Int
-happyExpList = Happy_Data_Array.listArray (0,97) ([0,64896,0,64256,1,2,0,256,0,512,0,1024,0,16384,0,16,0,0,1,0,0,0,0,0,0,0,0,0,0,8192,0,0,32448,8192,0,32768,0,32768,0,0,2,0,4,0,8,0,64,0,32768,0,256,0,512,0,256,0,0,0,1024,0,4096,0,0,0,0,0,0,2,32768,0,0,1,0,16,0,1024,0,8,0,0,0,8192,0,16384,0,16384,0,4096,0,2048,0,1024,0,0,0,0,0,32768,0,0,4,0,0,0,0,0,2,0,16,0,1024,0,0,0,0,0,64,0,0,0,0,1,0,0,0
+happyExpList = Happy_Data_Array.listArray (0,103) ([0,64896,0,64256,1,2,0,256,0,512,0,1024,0,16384,0,16,0,0,1,0,0,0,0,0,0,0,0,0,0,8192,0,0,32448,8192,0,32768,0,32768,0,0,2,0,4,0,8,0,64,0,32768,0,256,0,512,0,256,0,0,0,1024,0,4096,0,0,0,0,0,0,2,32768,0,0,1,0,16,0,1024,0,8,0,0,0,8192,0,16384,0,16384,0,4096,0,2048,0,1024,0,0,0,0,0,32768,0,0,4,0,0,0,0,0,2,0,16,0,1024,0,0,0,0,0,64,0,0,0,1024,0,512,0,0,4,0,0,0
 	])
 
 {-# NOINLINE happyExpListPerState #-}
@@ -255,10 +255,17 @@ action_56 _ = happyFail (happyExpListPerState 56)
 
 action_57 _ = happyReduce_19
 
-action_58 (23) = happyShift action_59
+action_58 (17) = happyShift action_59
 action_58 _ = happyFail (happyExpListPerState 58)
 
-action_59 _ = happyReduce_18
+action_59 (15) = happyShift action_23
+action_59 (5) = happyGoto action_60
+action_59 _ = happyFail (happyExpListPerState 59)
+
+action_60 (23) = happyShift action_61
+action_60 _ = happyFail (happyExpListPerState 60)
+
+action_61 _ = happyReduce_18
 
 happyReduce_1 = happySpecReduce_3  4 happyReduction_1
 happyReduction_1 (HappyAbsSyn4  happy_var_3)
@@ -407,15 +414,17 @@ happyReduction_17 (HappyAbsSyn12  happy_var_1)
 	)
 happyReduction_17 _  = notHappyAtAll 
 
-happyReduce_18 = happyReduce 5 12 happyReduction_18
+happyReduce_18 = happyReduce 7 12 happyReduction_18
 happyReduction_18 (_ `HappyStk`
+	(HappyAbsSyn5  happy_var_6) `HappyStk`
+	_ `HappyStk`
 	(HappyAbsSyn5  happy_var_4) `HappyStk`
 	_ `HappyStk`
 	(HappyAbsSyn5  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn12
-		 ((happy_var_2, happy_var_4)
+		 ((happy_var_2, happy_var_4, happy_var_6)
 	) `HappyStk` happyRest
 
 happyReduce_19 = happySpecReduce_3  13 happyReduction_19
@@ -596,7 +605,7 @@ parseComm s = parse_Comm s 1
 
 
 {-# LINE 8 "<command-line>" #-}
-{-# LINE 1 "F:/Users/randy/AppData/Local/Temp/ghc19564_0/ghc_2.h" #-}
+{-# LINE 1 "F:/Users/randy/AppData/Local/Temp/ghc13656_0/ghc_2.h" #-}
 
 
 

@@ -94,14 +94,14 @@ ppList [] = "[]"
 ppList (x:[]) =  ("\"" ++ x ++ "\"" ++ "]")
 ppList ((x:xs)) =  ("\"" ++ x ++ "\"" ++ "," ++ (ppList (xs)))
 
-ppTList2 :: [([Char], [Char])] -> String 
+ppTList2 :: Transitions -> String 
 ppTList2 ([]) =  ""
 ppTList2 xs = "[" ++ ppTList xs
 
-ppTList :: [([Char], [Char])] -> String
+ppTList :: Transitions -> String
 ppTList ([]) =  "[]"
-ppTList ((x,y):[]) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "]")
-ppTList ((x,y):xs) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "\")" ++ "," ++ (ppTList (xs)))
+ppTList ((x,y,z):[]) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "," ++ "\"" ++ z ++ "\")" ++ "]")
+ppTList ((x,y,z):xs) =  ("(\"" ++ x ++ "\"" ++ "," ++ "\"" ++ y ++ "," ++ "\"" ++ z ++ "\")" ++ "," ++ (ppTList (xs)))
 
 ppFsmFunc :: FSMFunc -> Doc
 ppFsmFunc x = case x of

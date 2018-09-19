@@ -65,7 +65,7 @@ List2        : '[' List_Char_tr ']'              { TL $2 }
 List_Char_tr : ToupChar ',' List_Char_tr         { $1 : $3 }
              | ToupChar                          { [$1] }
 
-ToupChar : '(' ValueExp ',' ValueExp ')'         { ($2, $4) }
+ToupChar : '(' ValueExp ',' ValueExp ',' ValueExp ')'         { ($2, $4, $6) }
 
 List_Char   : ValueExp ',' List_Char         { $1 : $3 }
             | ValueExp                       { [$1] }

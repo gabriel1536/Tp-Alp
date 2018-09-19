@@ -11,15 +11,15 @@ type Alph = [String]
 type States = [String]
 type IState = [String]
 type FState = [String]
-type Transitions = [(String, String)]
+type Transitions = [(String, String, String)] -- State x State x a E Alphabet
 
 --type NameOfFsm = String
-data Fsm = Fsm { name        :: String
-               , alphabet    :: [String]
-               , states      :: [String]
+data Fsm = Fsm { name        :: Variable
+               , alphabet    :: Alph
+               , states      :: States
                , iState      :: String
-               , fState      :: [String]
-               , transitions :: [(String, String)]
+               , fState      :: FState
+               , transitions :: Transitions 
                } deriving (Show)
 
 type FSM = [Fsm]

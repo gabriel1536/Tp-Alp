@@ -8,7 +8,7 @@ setInitialState("numeritos", "a");
 
 setFinalStates("numeritos", "b");
 
-setTransitions("numeritos", [("a","b"), ("a","c"), ("b","c"), ("c","b")]);
+setTransitions("numeritos", [("a","b", "0"), ("a","c", "1"), ("b","c", "2"), ("c","b", "3")]);
 
 let cadena = "sarasa";
 let mathfunc = "xx"
