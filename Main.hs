@@ -46,7 +46,7 @@ main2 fsm@(x)= do
                 checkForArguments fsm args
                 ppParsedWork fsm (getJustString args)
             ":help" -> do 
-                putStrLn $ render $ (ppHelpCommands)
+                putStrLn $ render ppHelpCommands
                 main2 fsm
             ":create_fsm" -> do -- :create_fsm nameOfNewFsm
                 args <- getArgs 1 line    
@@ -68,6 +68,10 @@ main2 fsm@(x)= do
                 args <- getArgs 4 line
                 checkForArguments fsm args
                 addTransToWork fsm (getJustString args)
+            ":determineThis" -> do -- :determineThis FSM
+                args <- getArgs 1 line
+                checkForArguments fsm args
+                determineWork fsm (getJustString args)
             _ -> do 
                 unknComm
                 main2 fsm
@@ -79,6 +83,13 @@ main2 fsm@(x)= do
 --------------------------------------------------
 --------------------------------------------------
               -- get/set funcs --
+
+replaceFSM :: FSM -> Fsm -> FSM
+replaceFSM [] _ = []
+replaceFSM (x:xs) fsm = let compareName = (name x) == (name fsm) in
+    case compareName of
+        True -> (fsm:xs)
+        False -> [x] ++ (replaceFSM xs fsm)
 
 fsmNames :: FSM -> [String]
 fsmNames [] = []
@@ -200,6 +211,18 @@ addTransTo (x:xs) fsmName stateFrom stateTo value =
 addFsmByName :: String -> FSM -> Maybe FSM
 addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = "", fState = [], transitions = []}):xs)) else (Nothing)
               
+
+-- data Fsm = Fsm { name        :: Variable
+--                , alphabet    :: Alph
+--                , states      :: States
+--                , iState      :: String
+--                , fState      :: FState
+--                , transitions :: Transitions 
+--                } deriving (Show)
+
+determineWorkAux :: Fsm -> Fsm
+determineWorkAux f@Fsm{..} = f
+
               -- state mod funcs --
 --------------------------------------------------
 --------------------------------------------------
@@ -308,6 +331,24 @@ createFsmWork fsm args = do
                     Nothing -> do
                         putStrLn "Invalid Name. Try again."
                         main2 fsm
+
+
+
+determineWork :: FSM -> [String] -> IO ()
+determineWork fsm args = do
+    let fsmName = args !! 0
+    case (checkForExistingFSM fsm fsmName) of
+        False -> do 
+            putStrLn $ "FSM {" ++ (args !! 0) ++ "} not found."
+            main2 fsm
+        True -> do
+            let newState = determineWorkAux (getFsmByName fsm fsmName)
+            putStrLn "OK!, new fsm:"
+            putStrLn $ ppFsm fsm
+            main2 (replaceFSM fsm newState)
+
+
+
 
                 -- aux funcs --   
 --------------------------------------------------
