@@ -26,6 +26,7 @@ import Data.Char
     '}'                  { TBrClose }
     '('                  { TPrOpen }
     ')'                  { TPrClose }
+    ':'                  { TInto }
     VARDEF               { TVarDef }
     VAR                  { TVar $$ }
     FWORD                { TVTWord }
@@ -35,40 +36,42 @@ import Data.Char
     SETINITIALSTATE      { TSetInitState }
     SETFINALSTATES       { TSetFStates}
     SETTRANSITIONS       { TSetTrans }
+    COMPOSE              { TCompose } 
 
 %right ';'
 %%
 
-Comm    : Comm ';' Comm                               { Seq $1 $3 }
-        | VARDEF VAR '=' ValueExp                     { VarDef $2 VTWord $4 }
-        | MACHINE VAR '=' ValueExp                    { VarDef $2 VTMachine $4 }
-        | VAR '=' ValueExp                            { Assign $1 $3 }
-        | Functions_Mul '(' ValueExp ',' List ')'     { Apply $1 $3 $5 }
-        | Functions_Sin '(' ValueExp ',' ValueExp ')' { Apply2 $1 $3 $5 }
-        | Function_Tran '(' ValueExp ',' List2 ')'    { Apply3 $1 $3 $5 }
+Comm    : Comm ';' Comm                                { Seq $1 $3 }
+        | VARDEF VAR '=' ValueExp                      { VarDef $2 VTWord $4 }
+        | MACHINE VAR '=' ValueExp                     { VarDef $2 VTMachine $4 }
+        | VAR '=' ValueExp                             { Assign $1 $3 }
+        | Functions_Mul '(' ValueExp ',' List ')'      { Apply $1 $3 $5 }
+        | Functions_Sin '(' ValueExp ',' ValueExp ')'  { Apply2 $1 $3 $5 }
+        | Function_Tran '(' ValueExp ',' List2 ')'     { Apply3 $1 $3 $5 }
+        | COMPOSE '(' List ')' ':' '(' ValueExp ')'    { Concat $3 $7 }
 
-ValueExp    :  '"' VAR '"'                      { $2 }
+ValueExp    :  '"' VAR '"'                             { $2 }
 
-Functions_Mul   : SETALPHABET                       { SAlph }
-                | ADDSTATES                         { AddS }
+Functions_Mul   : SETALPHABET                          { SAlph }
+                | ADDSTATES                            { AddS }
             
             
-Functions_Sin : SETINITIALSTATE                   { SIS }
-              | SETFINALSTATES                    { SFS }
+Functions_Sin : SETINITIALSTATE                        { SIS }
+              | SETFINALSTATES                         { SFS }
             
-Function_Tran : SETTRANSITIONS                   { STS }
+Function_Tran : SETTRANSITIONS                         { STS }
 
-List         : '[' List_Char ']'                 { L $2 }
+List         : '[' List_Char ']'                       { L $2 }
 
-List2        : '[' List_Char_tr ']'              { TL $2 }
+List2        : '[' List_Char_tr ']'                    { TL $2 }
 
-List_Char_tr : ToupChar ',' List_Char_tr         { $1 : $3 }
-             | ToupChar                          { [$1] }
+List_Char_tr : ToupChar ',' List_Char_tr               { $1 : $3 }
+             | ToupChar                                { [$1] }
 
-ToupChar : '(' ValueExp ',' ValueExp ',' ValueExp ')'         { ($2, $4, $6) }
+ToupChar : '(' ValueExp ',' ValueExp ',' ValueExp ')'  { ($2, $4, $6) }
 
-List_Char   : ValueExp ',' List_Char         { $1 : $3 }
-            | ValueExp                       { [$1] }
+List_Char   : ValueExp ',' List_Char                   { $1 : $3 }
+            | ValueExp                                 { [$1] }
 
 {
 
@@ -107,6 +110,7 @@ data Token  = TEquals
             | TBrClose
             | TPrOpen
             | TPrClose
+            | TInto
             | TVarDef
             | TVar String
             | TVTWord
@@ -116,6 +120,7 @@ data Token  = TEquals
             | TSetInitState
             | TSetFStates
             | TSetTrans
+            | TCompose
             | TMachDef
             | TEOF
             deriving Show
@@ -143,6 +148,7 @@ lexer cont s = case s of
                    ('}':cs) -> cont TBrClose cs
                    ('(':cs) -> cont TPrOpen cs
                    (')':cs) -> cont TPrClose cs
+                   (':':cs) -> cont TInto cs
                    unknown -> \line ->
                                        Error $ "Parse error: Line " ++ (show line)
                                        ++ "-> Unrecognized "
@@ -155,6 +161,7 @@ lexer cont s = case s of
                                                         ("setInitialState", rest)       -> cont TSetInitState rest
                                                         ("setFinalStates", rest)        -> cont TSetFStates rest
                                                         ("setTransitions", rest)        -> cont TSetTrans rest
+                                                        ("compose", rest)               -> cont TCompose rest
                                                         (var,rest)                      -> cont (TVar var) rest
                          consumirBK anidado cl cont s = case s of
                                                               ('-':('-':cs)) -> consumirBK anidado cl cont $ dropWhile ((/=) '\n') cs

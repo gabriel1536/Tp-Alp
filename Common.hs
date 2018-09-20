@@ -28,7 +28,7 @@ data FSMFunc = SAlph
               | AddS                    
               | SIS                    
               | SFS                    
-              | STS                    
+              | STS 
               | None                  
               deriving Show
 
@@ -44,4 +44,5 @@ data Comm   = VarDef Variable VT Variable  -- Definición de variable
             | Apply FSMFunc Variable Lists -- Aplicacion
             | Apply2 FSMFunc Variable Variable -- Aplicacion
             | Apply3 FSMFunc Variable TLists -- Aplicacion
+            | Concat Lists Variable
             deriving Show

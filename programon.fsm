@@ -10,5 +10,7 @@ setFinalStates("numeritos", "b");
 
 setTransitions("numeritos", [("a","b", "0"), ("a","c", "1"), ("b","c", "2"), ("c","b", "3")]);
 
+compose(["numeritos", "otros"]):("sarasa");
+
 let cadena = "sarasa";
 let mathfunc = "xx"

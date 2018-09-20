@@ -129,6 +129,7 @@ ppComm (Apply2 fsmf var var1) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
                                text ("(" ++ var ++ "," ++ ("\"" ++ var1 ++ "\"") ++ ")")
 ppComm (Apply3 fsmf var (TL tlist)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
                                text ("(" ++ var ++ "," ++ (ppTList2 tlist) ++ ")")
+ppComm (Concat (L l) fsmc) = text $ "concat(" ++ (ppList2 l) ++ "):(\"" ++ fsmc ++ "\")"
 
 ppHelpCommands :: Doc
 ppHelpCommands = text ":q | quit interpreter" Text.PrettyPrint.HughesPJ.<>
