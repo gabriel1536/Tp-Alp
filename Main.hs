@@ -220,8 +220,37 @@ addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem
 --                , transitions :: Transitions 
 --                } deriving (Show)
 
+--possible alphabet
+
+transLookup :: Transitions -> String -> String -> String
+transLookup [] _ _ = ""
+transLookup ((from, to, word):xs) st w = case (from == st && word == w) of
+    True -> to ++ "-" ++ (transLookup xs st w) 
+    False -> transLookup xs st w
+
+combStates :: Fsm -> [String] -> String -> String
+combStates _ [] _ = ""
+combStates fsm (s:stName) (w) = (transLookup (transitions fsm) s w) ++ "-" ++ (combStates fsm stName w)
+
+cleanLookup :: String -> String 
+cleanLookup [] = ""
+cleanLookup (x:xs) = [x] ++ (cleanLookup (filter (\z -> z /= x) xs))
+
+getNextSName :: String -> Fsm -> String -> (String, Transitions)
+getNextSName n fsm w = let st = cleanLookup (combStates fsm (sort (splitOn "-" n)) w) in
+    (st, [(n, st, w)])
+
 determineWorkAux :: Fsm -> Fsm
-determineWorkAux f@Fsm{..} = f
+determineWorkAux fsm = 
+    let initState = (iState fsm) 
+        a = 2
+    in
+
+        f
+
+
+
+
 
               -- state mod funcs --
 --------------------------------------------------
