@@ -45,6 +45,10 @@ main2 fsm@(x)= do
                 args <- getArgs 0 line    
                 checkForArguments fsm args
                 ppParsedWork fsm (getJustString args)
+            ":load" -> do
+                args <- getArgs 0 line    
+                checkForArguments fsm args
+                loadFileWork fsm (getJustString args)
             ":help" -> do 
                 putStrLn $ render ppHelpCommands
                 main2 fsm
@@ -204,7 +208,7 @@ addTransTo [] _ _ _ _ = []
 addTransTo (x:xs) fsmName stateFrom stateTo value = 
     let compareName = (name x) == fsmName in
         case compareName of
-            True -> let x' = x { transitions = (stateFrom, stateTo, value) : (transitions x) , alphabet = value : (alphabet x)} in
+            True -> let x' = x { transitions = (stateFrom, stateTo, value) : (transitions x) , alphabet = cleanDupes (value : (alphabet x))} in
                 [x'] ++ xs
             False -> [x] ++ (addTransTo xs fsmName stateFrom stateTo value)
 
@@ -222,31 +226,48 @@ addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem
 
 --possible alphabet
 
+cleanDupes :: [String] -> [String]
+cleanDupes [] = []
+cleanDupes (x:xs) = [x] ++ (cleanDupes (filter (\z -> z /= x) xs))
+
 transLookup :: Transitions -> String -> String -> String
 transLookup [] _ _ = ""
 transLookup ((from, to, word):xs) st w = case (from == st && word == w) of
     True -> to ++ "-" ++ (transLookup xs st w) 
     False -> transLookup xs st w
 
-combStates :: Fsm -> [String] -> String -> String
+combStates :: Transitions -> [String] -> String -> String
 combStates _ [] _ = ""
-combStates fsm (s:stName) (w) = (transLookup (transitions fsm) s w) ++ "-" ++ (combStates fsm stName w)
+combStates trans (s:stName) (w) = (transLookup trans s w) ++ "-" ++ (combStates trans stName w)
 
 cleanLookup :: String -> String 
 cleanLookup [] = ""
 cleanLookup (x:xs) = [x] ++ (cleanLookup (filter (\z -> z /= x) xs))
 
-getNextSName :: String -> Fsm -> String -> (String, Transitions)
-getNextSName n fsm w = let st = cleanLookup (combStates fsm (sort (splitOn "-" n)) w) in
+getNextSName :: String -> Transitions -> String -> (String, Transitions)
+getNextSName n trans w = let st = cleanLookup (combStates trans (sort (splitOn "-" n)) w) in
     (st, [(n, st, w)])
+
+getNextSNames :: [String] -> [String] -> Transitions -> String -> ([String], Transitions)
+getNextSNames d [] tr w = (d , tr)
+getNextSNames (done) (g:got) trans w = let (s, t) = getNextSName g trans w in
+    if (stateInList done s) then
+        (done, t)
+    else
+        getNextSNames (g:done) (got ++ [s]) t w
+
+g :: [String] -> Transitions -> [String] -> ([String], Transitions)
+g st tr [] = (st, tr)
+g st tr (w:ws) = let (s, t) = getNextSNames [] st tr w in
+    g (st ++ s) (tr ++ t) ws
+
 
 determineWorkAux :: Fsm -> Fsm
 determineWorkAux fsm = 
-    let initState = (iState fsm) 
-        a = 2
+    let (st, trans) = g [(iState fsm)] (transitions fsm) (alphabet fsm)
     in
-
-        f
+        fsm { states = st, transitions = trans }
+    
 
 
 
@@ -342,7 +363,6 @@ addTransToWork fsm args = let fsmName = args !! 0
             putStrLn $ "OK!, new trans: (" ++ state1 ++ state2 ++ value ++ ")."
             main2 newState
 
-
 createFsmWork :: FSM -> [String] -> IO ()
 createFsmWork fsm args = do
     fsmName <- try (return (args !! 0)) :: IO (Either SomeException String)
@@ -361,8 +381,6 @@ createFsmWork fsm args = do
                         putStrLn "Invalid Name. Try again."
                         main2 fsm
 
-
-
 determineWork :: FSM -> [String] -> IO ()
 determineWork fsm args = do
     let fsmName = args !! 0
@@ -373,11 +391,10 @@ determineWork fsm args = do
         True -> do
             let newState = determineWorkAux (getFsmByName fsm fsmName)
             putStrLn "OK!, new fsm:"
-            putStrLn $ ppFsm fsm
+            putStrLn $ ppFsm newState
             main2 (replaceFSM fsm newState)
 
-
-
+loadFileWork :: FSM -> [String] -> IO ()
 
                 -- aux funcs --   
 --------------------------------------------------

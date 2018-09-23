@@ -1,16 +1,16 @@
 Machine fsm = "numeritos";
 
-setAlphabet("numeritos", ["a", "b", "c", "d"]);
+--setAlphabet("numeritos", ["a", "b", "c", "d"]);
 
-addStates("numeritos", ["as", "bs", "cs", "ds"]);
+addStates("numeritos", ["a", "b", "c"]);
 
 setInitialState("numeritos", "a");
 
 setFinalStates("numeritos", "b");
 
-setTransitions("numeritos", [("a","b", "0"), ("a","c", "1"), ("b","c", "2"), ("c","b", "3")]);
+setTransitions("numeritos", [("a","b", "0"), ("a","c", "0"), ("c","b", "1"), ("a","b", "1")]);
 
-compose(["numeritos", "otros"]):("sarasa");
+--compose(["numeritos", "otros"]):("sarasa");
 
-let cadena = "sarasa";
-let mathfunc = "xx"
+--let cadena = "sarasa";
+--let mathfunc = "xx"
