@@ -116,19 +116,19 @@ ppComm :: Comm -> Doc
 ppComm (VarDef var vt value) =  text "let " Text.PrettyPrint.HughesPJ.<>
                                 text (var ++ ": ") Text.PrettyPrint.HughesPJ.<>
                                 text " = " Text.PrettyPrint.HughesPJ.<>
-                                text value
+                                text ("\"" ++ value ++ "\"")
 ppComm (Assign var val) =   text var Text.PrettyPrint.HughesPJ.<>
                             text " = " Text.PrettyPrint.HughesPJ.<>
-                            text val
+                            text ("\"" ++ val ++ "\"")
 ppComm (Seq c1 c2) = ppComm c1 Text.PrettyPrint.HughesPJ.<>
                      text "\n" Text.PrettyPrint.HughesPJ.<>
                      ppComm c2
 ppComm (Apply fsmf var (L list)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ (ppList2 list) ++ ")")
+                               text ("(" ++ var ++ "," ++ (ppList2 list) ++ ")1")
 ppComm (Apply2 fsmf var var1) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ ("\"" ++ var1 ++ "\"") ++ ")")
+                               text ("(" ++ var ++ "," ++ ("\"" ++ var1 ++ "\"") ++ ")2")
 ppComm (Apply3 fsmf var (TL tlist)) = ppFsmFunc fsmf Text.PrettyPrint.HughesPJ.<>
-                               text ("(" ++ var ++ "," ++ (ppTList2 tlist) ++ ")")
+                               text ("(" ++ var ++ "," ++ (ppTList2 tlist) ++ ")3")
 ppComm (Concat (L l) fsmc) = text $ "concat(" ++ (ppList2 l) ++ "):(\"" ++ fsmc ++ "\")"
 
 ppHelpCommands :: Doc

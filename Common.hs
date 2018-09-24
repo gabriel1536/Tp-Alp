@@ -24,6 +24,8 @@ data Fsm = Fsm { name        :: Variable
 
 type FSM = [Fsm]
 
+type VEnv = [(String, String)]
+
 data FSMFunc = SAlph                    
               | AddS                    
               | SIS                    

@@ -12,5 +12,6 @@ setTransitions("numeritos", [("a","b", "0"), ("a","c", "0"), ("c","b", "1"), ("a
 
 --compose(["numeritos", "otros"]):("sarasa");
 
---let cadena = "sarasa";
+let cadena = "sarasa";
+cadena = "a"
 --let mathfunc = "xx"

@@ -29,10 +29,11 @@ import PrettyPrinter
 --                } deriving (Show)
 
 main :: IO ()
-main = main2 [(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})]
+main = main2 ([], [])--[(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})])
 
-main2 :: FSM -> IO ()
-main2 fsm@(x)= do
+main2 :: (VEnv, FSM) -> IO ()
+main2 vfsm@(x)= do
+    let fsm = snd vfsm
     putStr $ "> "
     _line <- getLine
     let line = unpack (strip $ pack _line) in
@@ -40,45 +41,53 @@ main2 fsm@(x)= do
             ":q" -> return ()
             ":print_fsm" -> do -- print every fsm (fix)
                 putStrLn $ ppFsm fsm
-                main2 fsm
+                main2 ([], fsm)
             ":pp_parsed" -> do -- print parsed fsm file (used for debugging)
                 args <- getArgs 0 line    
                 checkForArguments fsm args
-                ppParsedWork fsm (getJustString args)
+                newfsm <- ppParsedWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":load" -> do
                 args <- getArgs 0 line    
                 checkForArguments fsm args
-                loadFileWork fsm (getJustString args)
+                newfsm <- loadFileWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":help" -> do 
                 putStrLn $ render ppHelpCommands
-                main2 fsm
+                main2 (fst vfsm, fsm)
             ":create_fsm" -> do -- :create_fsm nameOfNewFsm
                 args <- getArgs 1 line    
                 checkForArguments fsm args
-                createFsmWork fsm (getJustString args)
+                newfsm <- createFsmWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":addStateTo" -> do -- :addStateTo FSM nameOfNewState
                 args <- getArgs 2 line
                 checkForArguments fsm args
-                addStateToWork fsm (getJustString args)
+                newfsm <- addStateToWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":addIStateTo" -> do -- :addIStateTo FSM nameOfExistingState
                 args <- getArgs 2 line
                 checkForArguments fsm args
-                addIStateToWork fsm (getJustString args)
+                newfsm <- addIStateToWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":addFStateTo" -> do -- :addFStateTo FSM nameOfExistingState
                 args <- getArgs 2 line
                 checkForArguments fsm args
-                addFStateToWork fsm (getJustString args)
+                newfsm <- addFStateToWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":addTransTo" -> do -- :addTransTo FSM nameOfExistingState1 nameOfExistingState2 alphElem
                 args <- getArgs 4 line
                 checkForArguments fsm args
-                addTransToWork fsm (getJustString args)
+                newfsm <- addTransToWork fsm (getJustString args)
+                main2 ([], newfsm)
             ":determineThis" -> do -- :determineThis FSM
                 args <- getArgs 1 line
                 checkForArguments fsm args
-                determineWork fsm (getJustString args)
+                newfsm <- determineWork fsm (getJustString args)
+                main2 ([], newfsm)
             _ -> do 
                 unknComm
-                main2 fsm
+                main2 (fst vfsm, fsm)
 
 
 
@@ -145,7 +154,7 @@ unknComm = putStrLn $ "Didn't get that, type ':help' for known commands"
 checkForArguments :: FSM -> Maybe [String] -> IO ()
 checkForArguments s Nothing = do
     putStrLn "Not enough arguments!"
-    main2 s
+    main2 ([], s)
 checkForArguments _ _ = putStr "" -- fix? I guess... It works though
 
 missingArgsFunc :: SomeException -> IO ()
@@ -283,69 +292,69 @@ determineWorkAux fsm =
 --------------------------------------------------
 --------------------------------------------------
                 -- aux funcs --
-ppParsedWork :: FSM -> [String] -> IO ()
+ppParsedWork :: FSM -> [String] -> IO (FSM)
 ppParsedWork fsm args = do
     fsmcode <- try (readFile $ args !! 0) :: IO (Either SomeException String)
     case fsmcode of -- checking for existing file
         Left ex -> do
             missingArgsFunc ex
-            main2 fsm
+            return fsm
         Right content -> do
             case parseComm content of -- checking for parser
                 Ok m -> do 
                         putStrLn $ render $ (ppComm m)
                 Error r -> putStrLn $ r
-            main2 fsm
+            return fsm
 
-addStateToWork :: FSM -> [String] -> IO ()
+addStateToWork :: FSM -> [String] -> IO (FSM)
 addStateToWork fsm args = let fsmName = args !! 0
                               state1  = args !! 1
     in
     case ((checkForExistingFSM fsm fsmName), (checkForExistingStates fsm fsmName state1)) of
         (False, _) -> do
             putStrLn $ "FSM {" ++ fsmName ++ "} not found."
-            main2 fsm
+            return fsm
         (True, True) -> do
             putStrLn $ "State {" ++ state1 ++ "} already exists!."
-            main2 fsm
+            return fsm
         (True, False) -> 
             let newState = addStateTo fsm fsmName state1 in
-                do putStrLn "Ok!"
-                   main2 newState   
+                do putStrLn $ "Ok! - " ++ state1
+                   return newState   
 
-addIStateToWork :: FSM -> [String] -> IO ()
+addIStateToWork :: FSM -> [String] -> IO (FSM)
 addIStateToWork fsm args = let fsmName = args !! 0
                                state1  = args !! 1
     in
     case ((checkForExistingFSM fsm fsmName), (checkForExistingStates fsm fsmName state1)) of
         (False, _) -> do
             putStrLn $ "FSM {" ++ fsmName ++ "} not found."
-            main2 fsm
+            return fsm
         (True, False) -> do
             putStrLn $ "Not a valid state for FSM {" ++ fsmName ++ "}"
-            main2 fsm
+            return fsm
         (True, True) -> 
             let (str, newState) = addIStateTo fsm fsmName state1 in
                 do putStrLn str
-                   main2 newState
+                   return newState
 
-addFStateToWork :: FSM -> [String] -> IO ()
+addFStateToWork :: FSM -> [String] -> IO (FSM)
 addFStateToWork fsm args = let fsmName = args !! 0
                                state1  = args !! 1
     in
     case ((checkForExistingFSM fsm fsmName), (checkForExistingStates fsm fsmName state1)) of
         (False, _) -> do
             putStrLn $ "FSM {" ++ fsmName ++ "} not found."
-            main2 fsm
+            return fsm
         (True, False) -> do
             putStrLn $ "Not a valid state for FSM {" ++ fsmName ++ "}"
-            main2 fsm
+            return fsm
         (True, True) -> 
             let (str, newState) = addFStateTo fsm fsmName state1 in
                 do putStrLn str
-                   main2 newState
+                   return newState
 
-addTransToWork :: FSM -> [String] -> IO ()
+addTransToWork :: FSM -> [String] -> IO (FSM)
 addTransToWork fsm args = let fsmName = args !! 0
                               state1  = args !! 1
                               state2  = args !! 2
@@ -354,47 +363,95 @@ addTransToWork fsm args = let fsmName = args !! 0
     case ((checkForExistingFSM fsm fsmName), ((checkForExistingStates fsm fsmName state1) && (checkForExistingStates fsm fsmName state2))) of
         (False, _) -> do 
             putStrLn $ "FSM {" ++ (args !! 0) ++ "} not found."
-            main2 fsm
+            return fsm
         (True, False) -> do
             putStrLn $ "Not a valid pair of states for the FSM {" ++ (args !! 0) ++ "}"
-            main2 fsm
+            return fsm
         (True,True) -> do
             let newState = addTransTo fsm fsmName state1 state2 value
             putStrLn $ "OK!, new trans: (" ++ state1 ++ state2 ++ value ++ ")."
-            main2 newState
+            return newState
 
-createFsmWork :: FSM -> [String] -> IO ()
+createFsmWork :: FSM -> [String] -> IO (FSM)
 createFsmWork fsm args = do
     fsmName <- try (return (args !! 0)) :: IO (Either SomeException String)
     case fsmName of
         Left ex -> do
             missingArgsFunc ex
-            main2 fsm
+            return fsm
         Right fname ->
             let s' = addFsmByName fname fsm in
                 case s' of
                     Just newState -> do
                         putStr "Ok! Name: "
                         putStrLn $ name (newState !! 0)
-                        main2 newState
+                        return newState
                     Nothing -> do
                         putStrLn "Invalid Name. Try again."
-                        main2 fsm
+                        return fsm
 
-determineWork :: FSM -> [String] -> IO ()
+determineWork :: FSM -> [String] -> IO (FSM)
 determineWork fsm args = do
     let fsmName = args !! 0
     case (checkForExistingFSM fsm fsmName) of
         False -> do 
             putStrLn $ "FSM {" ++ (args !! 0) ++ "} not found."
-            main2 fsm
+            return fsm
         True -> do
             let newState = determineWorkAux (getFsmByName fsm fsmName)
             putStrLn "OK!, new fsm:"
-            putStrLn $ ppFsm newState
-            main2 (replaceFSM fsm newState)
+            putStrLn $ ppFsm [newState]
+            return (replaceFSM fsm newState)
 
-loadFileWork :: FSM -> [String] -> IO ()
+loadFileWork :: FSM -> [String] -> IO (FSM)
+loadFileWork fsm args = do
+    fsmcode <- try (readFile $ args !! 0) :: IO (Either SomeException String)
+    case fsmcode of -- checking for existing file
+        Left ex -> do
+            missingArgsFunc ex
+            return fsm
+        Right content -> do
+            case parseComm content of -- checking for parser
+                Ok m -> do 
+                        workAround m fsm
+                Error r -> do
+                           putStrLn $ r
+                           return fsm   
+
+workAround :: Comm -> FSM -> IO (FSM)
+workAround (VarDef var vt value) fsm = 
+    case vt of
+        VTMachine -> createFsmWork fsm [value]
+        VTWord -> return fsm -- TODO!!
+workAround (Assign var val) fsm = return fsm -- TODO!!
+workAround (Apply fsmf var (L [])) fsm = return fsm -- TODO !!
+workAround (Apply fsmf var (L (x:xs))) fsm = do
+    faux <- workAround (Apply2 fsmf var x) fsm
+    workAround (Apply fsmf var (L (xs))) faux
+workAround (Apply2 fsmf var value) fsm = 
+    case fsmf of
+        AddS  -> addStateToWork fsm [var,value]
+        SIS   -> addIStateToWork fsm [var,value]
+        SFS   -> addFStateToWork fsm [var,value]
+        _     -> do 
+            putStrLn "ERROR"
+            return fsm
+workAround (Apply3 _ var (TL [])) fsm = 
+    return fsm
+workAround (Apply3 nimp var (TL (x:xs))) fsm = do
+    faux <- addTransToWork fsm (fromTuple var x)
+    workAround (Apply3 nimp var (TL (xs))) faux
+workAround (Seq c1 c2) fsm = do
+    nfsm <- workAround c1 fsm
+    workAround c2 nfsm
+
+
+fromTuple :: String -> (String, String, String) -> [String]
+fromTuple fsmname (st1, st2, val) = [fsmname, st1, st2, val]
+
+-- workAround (Seq c1 c2) = do
+--     workAround c1
+--     workAround c2
 
                 -- aux funcs --   
 --------------------------------------------------
