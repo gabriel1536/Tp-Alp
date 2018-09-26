@@ -239,46 +239,6 @@ cleanDupes :: [String] -> [String]
 cleanDupes [] = []
 cleanDupes (x:xs) = [x] ++ (cleanDupes (filter (\z -> z /= x) xs))
 
-
-
-delEmpty :: [String] -> [String]
-delEmpty [] = []
-delEmpty (x:xs) = if (x /= "") then ([x] ++ (delEmpty xs)) else (delEmpty xs)
-
-combStates :: Transitions -> [String] -> String -> String
-combStates _ [] _ = ""
-combStates _ _ [] = ""
-combStates trans (s:stName) (w) = (transLookup trans s w) ++ (combStates trans stName w)
-
-cleanLookup :: String -> String 
-cleanLookup [] = ""
-cleanLookup (x:xs) = [x] ++ (cleanLookup (filter (\z -> z /= x) xs))
-
-getNextSName :: String -> Transitions -> String -> IO (String, Transitions)
-getNextSName n trans w = do 
-    let  st = (sort $ map (\x -> [x]) n)
-         st1 = (combStates trans st w)
-         sa = cleanLookup st1
-    putStrLn $ show st
-    return (sa, [(n, sa, w)])
-
-getNextSNames :: [String] -> [String] -> Transitions -> String -> IO ([String], Transitions)
-getNextSNames d [] tr w = return (d , tr)
-getNextSNames (done) (g:got) trans w = do
-    sarasa <- getNextSName g trans w
-    if (stateInList done (fst sarasa)) then
-        return (done, snd sarasa)
-    else
-        getNextSNames (g:done) (got ++ [(fst sarasa)]) (snd sarasa) w
-
-g :: [String] -> Transitions -> [String] -> IO ([String], Transitions)
-g st tr [] = return (st, tr)
-g st tr (w:ws) = do
-    sarasa <- getNextSNames [] st tr w
-    --putStrLn $ "A" ++ show sarasa
-    g (st ++ (fst sarasa)) (tr ++ (snd sarasa)) ws
-
-
 transLookup :: Transitions -> String -> String -> String
 transLookup [] _ _ = ""
 transLookup ((from, to, word):xs) st w = case (from == st && word == w) of
@@ -292,40 +252,51 @@ transLookupAlph tr state (word:words) = let newS = intercalate "-" (map (\x -> [
         [(state, newS, word)] ++ (transLookupAlph tr state words)    
     else (transLookupAlph tr state words)  
 
-
 transLookupBet :: Transitions -> [String] -> [String] -> Transitions
 transLookupBet _ [] _ = []
 transLookupBet tr (x:xs) (words) = (transLookupAlph tr x words) ++ (transLookupBet tr xs words)
 
-
 addnewState :: [String] -> [String] -> [String]
-addnewState _ [] = []
-addnewState old (n:new) = if (stateInList old n) then (addnewState old new) else (addnewState (n:old) new)
+addnewState old [] = old
+addnewState old (n:new) = if (stateInList old n) then (addnewState old new) else (addnewState (old ++ [n]) new)
 
-get3 :: [String] -> [String] -> [String] -> Transitions -> (Transitions, [String])
-get3 old [] _ tr = (tr, old)
-get3 old (n:new) tr = let (trs, sts) = get2 (old !! 0)
---ACAAA
+get3 :: [String] -> [String] -> Transitions -> Transitions -> Int -> (Transitions, [String])
+--get3 old [] _ tr _ = (tr, old)
+get3 old words tr trnew n = 
+    if ((length old) > n) then
+        let 
+            (trs, sts) = get2 (old !! n) words tr
+        in
+            get3 (addnewState old sts) words tr (trnew ++ trs) (n+1)
+    else
+        (trnew, old)
 
 get2 :: String -> [String] -> Transitions -> (Transitions, [String])
 get2 state words oldTr = let newtrans = transLookupBet oldTr (splitOn "-" state) words 
                              newStates = map (\(x,y,z)-> y) newtrans
     in
         (newtrans, newStates)
-
-get1 :: Fsm -> Fsm -> IO (Fsm)
-get1 old new = do
-    let oldStates = states old
+--foldl (||) False (map (\sname -> sname == fsmName) names) 
+get1 :: Fsm -> Fsm 
+get1 old =
+    let trans = transitions old
         alph = alphabet old
-    return new
+        init = iState old
+        (newTrans, newStates) = get3 [init] alph trans [] 0
+    in
+        Fsm {name = name old, alphabet = alph, states = newStates, iState = init, fState = [], transitions = newTrans}
 
 determineWorkAux :: Fsm -> IO (Fsm)
-determineWorkAux fsm = do
-    sarasa <- g [(iState fsm)] (transitions fsm) (alphabet fsm)
-    return (fsm { states = fst sarasa, transitions = snd sarasa })
+determineWorkAux fsm = return $ get1 fsm
     
 
-
+-- data Fsm = Fsm { name        :: Variable
+--                , alphabet    :: Alph
+--                , states      :: States
+--                , iState      :: String
+--                , fState      :: FState
+--                , transitions :: Transitions 
+--                } deriving (Show)
 
 
 
