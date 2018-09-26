@@ -239,43 +239,90 @@ cleanDupes :: [String] -> [String]
 cleanDupes [] = []
 cleanDupes (x:xs) = [x] ++ (cleanDupes (filter (\z -> z /= x) xs))
 
-transLookup :: Transitions -> String -> String -> String
-transLookup [] _ _ = ""
-transLookup ((from, to, word):xs) st w = case (from == st && word == w) of
-    True -> to ++ "-" ++ (transLookup xs st w) 
-    False -> transLookup xs st w
+
+
+delEmpty :: [String] -> [String]
+delEmpty [] = []
+delEmpty (x:xs) = if (x /= "") then ([x] ++ (delEmpty xs)) else (delEmpty xs)
 
 combStates :: Transitions -> [String] -> String -> String
 combStates _ [] _ = ""
-combStates trans (s:stName) (w) = (transLookup trans s w) ++ "-" ++ (combStates trans stName w)
+combStates _ _ [] = ""
+combStates trans (s:stName) (w) = (transLookup trans s w) ++ (combStates trans stName w)
 
 cleanLookup :: String -> String 
 cleanLookup [] = ""
 cleanLookup (x:xs) = [x] ++ (cleanLookup (filter (\z -> z /= x) xs))
 
-getNextSName :: String -> Transitions -> String -> (String, Transitions)
-getNextSName n trans w = let st = cleanLookup (combStates trans (sort (splitOn "-" n)) w) in
-    (st, [(n, st, w)])
+getNextSName :: String -> Transitions -> String -> IO (String, Transitions)
+getNextSName n trans w = do 
+    let  st = (sort $ map (\x -> [x]) n)
+         st1 = (combStates trans st w)
+         sa = cleanLookup st1
+    putStrLn $ show st
+    return (sa, [(n, sa, w)])
 
-getNextSNames :: [String] -> [String] -> Transitions -> String -> ([String], Transitions)
-getNextSNames d [] tr w = (d , tr)
-getNextSNames (done) (g:got) trans w = let (s, t) = getNextSName g trans w in
-    if (stateInList done s) then
-        (done, t)
+getNextSNames :: [String] -> [String] -> Transitions -> String -> IO ([String], Transitions)
+getNextSNames d [] tr w = return (d , tr)
+getNextSNames (done) (g:got) trans w = do
+    sarasa <- getNextSName g trans w
+    if (stateInList done (fst sarasa)) then
+        return (done, snd sarasa)
     else
-        getNextSNames (g:done) (got ++ [s]) t w
+        getNextSNames (g:done) (got ++ [(fst sarasa)]) (snd sarasa) w
 
-g :: [String] -> Transitions -> [String] -> ([String], Transitions)
-g st tr [] = (st, tr)
-g st tr (w:ws) = let (s, t) = getNextSNames [] st tr w in
-    g (st ++ s) (tr ++ t) ws
+g :: [String] -> Transitions -> [String] -> IO ([String], Transitions)
+g st tr [] = return (st, tr)
+g st tr (w:ws) = do
+    sarasa <- getNextSNames [] st tr w
+    --putStrLn $ "A" ++ show sarasa
+    g (st ++ (fst sarasa)) (tr ++ (snd sarasa)) ws
 
 
-determineWorkAux :: Fsm -> Fsm
-determineWorkAux fsm = 
-    let (st, trans) = g [(iState fsm)] (transitions fsm) (alphabet fsm)
+transLookup :: Transitions -> String -> String -> String
+transLookup [] _ _ = ""
+transLookup ((from, to, word):xs) st w = case (from == st && word == w) of
+    True -> to ++ (transLookup xs st w) 
+    False -> transLookup xs st w
+
+transLookupAlph :: Transitions -> String -> [String] -> Transitions
+transLookupAlph _ _ [] = []
+transLookupAlph tr state (word:words) = let newS = intercalate "-" (map (\x -> [x]) (transLookup tr state word)) in
+    if (newS /= "") then
+        [(state, newS, word)] ++ (transLookupAlph tr state words)    
+    else (transLookupAlph tr state words)  
+
+
+transLookupBet :: Transitions -> [String] -> [String] -> Transitions
+transLookupBet _ [] _ = []
+transLookupBet tr (x:xs) (words) = (transLookupAlph tr x words) ++ (transLookupBet tr xs words)
+
+
+addnewState :: [String] -> [String] -> [String]
+addnewState _ [] = []
+addnewState old (n:new) = if (stateInList old n) then (addnewState old new) else (addnewState (n:old) new)
+
+get3 :: [String] -> [String] -> [String] -> Transitions -> (Transitions, [String])
+get3 old [] _ tr = (tr, old)
+get3 old (n:new) tr = let (trs, sts) = get2 (old !! 0)
+--ACAAA
+
+get2 :: String -> [String] -> Transitions -> (Transitions, [String])
+get2 state words oldTr = let newtrans = transLookupBet oldTr (splitOn "-" state) words 
+                             newStates = map (\(x,y,z)-> y) newtrans
     in
-        fsm { states = st, transitions = trans }
+        (newtrans, newStates)
+
+get1 :: Fsm -> Fsm -> IO (Fsm)
+get1 old new = do
+    let oldStates = states old
+        alph = alphabet old
+    return new
+
+determineWorkAux :: Fsm -> IO (Fsm)
+determineWorkAux fsm = do
+    sarasa <- g [(iState fsm)] (transitions fsm) (alphabet fsm)
+    return (fsm { states = fst sarasa, transitions = snd sarasa })
     
 
 
@@ -398,7 +445,7 @@ determineWork fsm args = do
             putStrLn $ "FSM {" ++ (args !! 0) ++ "} not found."
             return fsm
         True -> do
-            let newState = determineWorkAux (getFsmByName fsm fsmName)
+            newState <- determineWorkAux (getFsmByName fsm fsmName)
             putStrLn "OK!, new fsm:"
             putStrLn $ ppFsm [newState]
             return (replaceFSM fsm newState)
