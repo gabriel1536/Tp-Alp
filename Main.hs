@@ -252,9 +252,14 @@ transLookupAlph tr state (word:words) = let newS = intercalate "-" (map (\x -> [
         [(state, newS, word)] ++ (transLookupAlph tr state words)    
     else (transLookupAlph tr state words)  
 
-transLookupBet :: Transitions -> [String] -> [String] -> Transitions
-transLookupBet _ [] _ = []
-transLookupBet tr (x:xs) (words) = (transLookupAlph tr x words) ++ (transLookupBet tr xs words)
+transLookupGam :: Transitions -> [String] -> String -> String
+transLookupGam _ [] word = []
+transLookupGam tr (s:states) word = let newS = transLookup tr s word in
+    newS ++ transLookupGam tr states word
+
+-- transLookupBet :: Transitions -> [String] -> [String] -> Transitions
+-- transLookupBet _ [] _ = []
+-- transLookupBet tr (x:xs) (words) = (transLookupAlph tr x words) ++ (transLookupBet tr xs words)
 
 addnewState :: [String] -> [String] -> [String]
 addnewState old [] = old
@@ -272,22 +277,42 @@ get3 old words tr trnew n =
         (trnew, old)
 
 get2 :: String -> [String] -> Transitions -> (Transitions, [String])
-get2 state words oldTr = let newtrans = transLookupBet oldTr (splitOn "-" state) words 
-                             newStates = map (\(x,y,z)-> y) newtrans
+get2 state [] oldTr = ([], [])
+get2 state (w:words) oldTr = 
+    let 
+        newStates = intercalate "-" (map (\x -> [x]) (transLookupGam oldTr (splitOn "-" state) w))
+        newtrans = (state, newStates, w)
+        --newtrans = transLookupBet oldTr (splitOn "-" state) words 
+        --newStates = map (\(x,y,z)-> y) newtrans
     in
-        (newtrans, newStates)
---foldl (||) False (map (\sname -> sname == fsmName) names) 
-get1 :: Fsm -> Fsm 
-get1 old =
-    let trans = transitions old
-        alph = alphabet old
-        init = iState old
-        (newTrans, newStates) = get3 [init] alph trans [] 0
-    in
-        Fsm {name = name old, alphabet = alph, states = newStates, iState = init, fState = [], transitions = newTrans}
+        if (newStates /= "") then
+            let (ret1, ret2) = get2 state words oldTr in
+                ([newtrans] ++ ret1 , [newStates] ++ ret2)
+        else
+            get2 state words oldTr
 
 determineWorkAux :: Fsm -> IO (Fsm)
-determineWorkAux fsm = return $ get1 fsm
+determineWorkAux old =
+    let trans = transitions old
+        alph = alphabet old
+        fstates = fState old
+        init = iState old
+        (newTrans, newStates) = get3 [init] alph trans [] 0
+        fStates = getFs fstates trans newTrans 
+    in
+        return $ Fsm {name = name old, alphabet = alph, states = newStates, iState = init, fState = fStates, transitions = newTrans}
+
+getFs :: States -> Transitions -> Transitions -> States
+getFs [] _ _ = []
+getFs (x:xs) oldtr newtr = 
+    let 
+        fts = cleanDupes [c | (a,b,c) <- oldtr, x == b] 
+        sfs = cleanDupes [b | (a,b,c) <- newtr, elem c fts]
+    in
+        sfs ++ (getFs xs oldtr newtr)
+
+-- determineWorkAux :: Fsm -> IO (Fsm)
+-- determineWorkAux fsm = return $ get1 fsm
     
 
 -- data Fsm = Fsm { name        :: Variable
