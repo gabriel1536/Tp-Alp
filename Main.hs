@@ -20,14 +20,6 @@ import Common
 import Parser
 import PrettyPrinter
 
--- data FSM = FSM { name        :: String
---                , alphabet    :: [String]
---                , states      :: [String]
---                , iState      :: [String]
---                , fState      :: [String]
---                , transitions :: [String]
---                } deriving (Show)
-
 main :: IO ()
 main = main2 ([], [])--[(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})])
 
@@ -225,16 +217,6 @@ addFsmByName :: String -> FSM -> Maybe FSM
 addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = "", fState = [], transitions = []}):xs)) else (Nothing)
               
 
--- data Fsm = Fsm { name        :: Variable
---                , alphabet    :: Alph
---                , states      :: States
---                , iState      :: String
---                , fState      :: FState
---                , transitions :: Transitions 
---                } deriving (Show)
-
---possible alphabet
-
 cleanDupes :: [String] -> [String]
 cleanDupes [] = []
 cleanDupes (x:xs) = [x] ++ (cleanDupes (filter (\z -> z /= x) xs))
@@ -257,16 +239,11 @@ transLookupGam _ [] word = []
 transLookupGam tr (s:states) word = let newS = transLookup tr s word in
     newS ++ transLookupGam tr states word
 
--- transLookupBet :: Transitions -> [String] -> [String] -> Transitions
--- transLookupBet _ [] _ = []
--- transLookupBet tr (x:xs) (words) = (transLookupAlph tr x words) ++ (transLookupBet tr xs words)
-
 addnewState :: [String] -> [String] -> [String]
 addnewState old [] = old
 addnewState old (n:new) = if (stateInList old n) then (addnewState old new) else (addnewState (old ++ [n]) new)
 
 get3 :: [String] -> [String] -> Transitions -> Transitions -> Int -> (Transitions, [String])
---get3 old [] _ tr _ = (tr, old)
 get3 old words tr trnew n = 
     if ((length old) > n) then
         let 
@@ -282,8 +259,6 @@ get2 state (w:words) oldTr =
     let 
         newStates = intercalate "-" (map (\x -> [x]) (transLookupGam oldTr (splitOn "-" state) w))
         newtrans = (state, newStates, w)
-        --newtrans = transLookupBet oldTr (splitOn "-" state) words 
-        --newStates = map (\(x,y,z)-> y) newtrans
     in
         if (newStates /= "") then
             let (ret1, ret2) = get2 state words oldTr in
@@ -310,20 +285,6 @@ getFs (x:xs) oldtr newtr =
         sfs = cleanDupes [b | (a,b,c) <- newtr, elem c fts]
     in
         sfs ++ (getFs xs oldtr newtr)
-
--- determineWorkAux :: Fsm -> IO (Fsm)
--- determineWorkAux fsm = return $ get1 fsm
-    
-
--- data Fsm = Fsm { name        :: Variable
---                , alphabet    :: Alph
---                , states      :: States
---                , iState      :: String
---                , fState      :: FState
---                , transitions :: Transitions 
---                } deriving (Show)
-
-
 
               -- state mod funcs --
 --------------------------------------------------
