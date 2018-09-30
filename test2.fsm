@@ -1,0 +1,13 @@
+Machine fsm = "sarasa";
+
+--setAlphabet("sarasa", ["a", "b", "c", "d", "e"]);
+
+addStates("sarasa", ["a", "b", "c", "d", "e"]);
+
+setInitialState("sarasa", "a");
+
+setFinalStates("sarasa", "e");
+
+setTransitions("sarasa", [("a","a", "0"), ("a","c", "0"), ("a","b", "0"), ("a","d", "1"), ("a","d", "0"), ("a","e", "0"), ("a","e", "1"), ("b","c", "0"), ("b","e", "1"), ("c","b", "1"), ("d","e", "0")]);
+
+let cadena = "sarasa"

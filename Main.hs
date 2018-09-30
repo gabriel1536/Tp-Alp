@@ -216,6 +216,9 @@ addTransTo (x:xs) fsmName stateFrom stateTo value =
 addFsmByName :: String -> FSM -> Maybe FSM
 addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = "", fState = [], transitions = []}):xs)) else (Nothing)
               
+cleanDupes2 :: String -> String
+cleanDupes2 [] = ""
+cleanDupes2 (x:xs) = [x] ++ (cleanDupes2 (filter (\z -> z /= x) xs))
 
 cleanDupes :: [String] -> [String]
 cleanDupes [] = []
@@ -257,7 +260,7 @@ get2 :: String -> [String] -> Transitions -> (Transitions, [String])
 get2 state [] oldTr = ([], [])
 get2 state (w:words) oldTr = 
     let 
-        newStates = intercalate "-" (map (\x -> [x]) (transLookupGam oldTr (splitOn "-" state) w))
+        newStates = intercalate "-" (map (\x -> [x]) (sort (cleanDupes2 (transLookupGam oldTr (splitOn "-" state) w))))
         newtrans = (state, newStates, w)
     in
         if (newStates /= "") then
