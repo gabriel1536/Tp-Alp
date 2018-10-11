@@ -8,7 +8,6 @@ import System.IO
 import System.IO.Error
 import Data.Text (pack, unpack,strip)
 import Data.List
-import Data.Char
 import Data.Ord
 import Data.List.Split
 import System.Console.Haskeline
@@ -19,6 +18,7 @@ import Text.PrettyPrint.HughesPJ (render)
 import Common
 import Parser
 import PrettyPrinter
+import Eval
 
 main :: IO ()
 main = main2 ([], [])--[(Fsm {name = "First", alphabet = [], states = [], iState = "", fState = [], transitions = []})])
@@ -77,9 +77,15 @@ main2 vfsm@(x)= do
                 checkForArguments fsm args
                 newfsm <- determineWork fsm (getJustString args)
                 main2 ([], newfsm)
+            ":evalWordTo" -> do -- :evalWordTo Fsm word
+                args <- getArgs 2 line
+                checkForArguments fsm args
+                newfsm <- evalWork fsm (getJustString args)
+                main2 ([], newfsm)
             _ -> do 
                 unknComm
                 main2 (fst vfsm, fsm)
+
 
 
 
@@ -147,7 +153,7 @@ checkForArguments :: FSM -> Maybe [String] -> IO ()
 checkForArguments s Nothing = do
     putStrLn "Not enough arguments!"
     main2 ([], s)
-checkForArguments _ _ = putStr "" -- fix? I guess... It works though
+checkForArguments _ _ = putStr "" -- fix? 
 
 missingArgsFunc :: SomeException -> IO ()
 missingArgsFunc ex = if (isInfixOf "index too large" (show ex)) then (putStrLn "Error: Missing args!") 
@@ -215,7 +221,19 @@ addTransTo (x:xs) fsmName stateFrom stateTo value =
 
 addFsmByName :: String -> FSM -> Maybe FSM
 addFsmByName fsmName fsm@(xs) = if (fsmName == "") then Nothing else if (notElem fsmName (map (\x -> name x) xs)) then (Just ((Fsm {name = fsmName, alphabet = [], states = [], iState = "", fState = [], transitions = []}):xs)) else (Nothing)
-              
+             
+              -- state mod funcs --
+--------------------------------------------------
+--------------------------------------------------
+
+
+
+
+
+--------------------------------------------------
+--------------------------------------------------
+              -- ndfa->dfa mod funcs --
+
 cleanDupes2 :: String -> String
 cleanDupes2 [] = ""
 cleanDupes2 (x:xs) = [x] ++ (cleanDupes2 (filter (\z -> z /= x) xs))
@@ -289,9 +307,12 @@ getFs (x:xs) oldtr newtr =
     in
         sfs ++ (getFs xs oldtr newtr)
 
-              -- state mod funcs --
+
+              -- ndfa->dfa mod funcs --
 --------------------------------------------------
 --------------------------------------------------
+
+
 
 
 
@@ -410,6 +431,20 @@ determineWork fsm args = do
             putStrLn $ ppFsm [newState]
             return (replaceFSM fsm newState)
 
+evalWork :: FSM -> [String] -> IO (FSM)
+evalWork fsm args = do
+    let fsmName = args !! 0
+        word = args !! 1
+    case (checkForExistingFSM fsm fsmName) of
+        False -> do 
+            putStrLn $ "FSM {" ++ (args !! 0) ++ "} not found."
+            return fsm
+        True -> do
+            result <- evalWord (getFsmByName fsm fsmName) word
+            putStrLn result
+            return fsm
+
+
 loadFileWork :: FSM -> [String] -> IO (FSM)
 loadFileWork fsm args = do
     fsmcode <- try (readFile $ args !! 0) :: IO (Either SomeException String)
@@ -441,7 +476,7 @@ workAround (Apply2 fsmf var value) fsm =
         SIS   -> addIStateToWork fsm [var,value]
         SFS   -> addFStateToWork fsm [var,value]
         _     -> do 
-            putStrLn "ERROR"
+            putStrLn "ERROR func not found??? MAL"
             return fsm
 workAround (Apply3 _ var (TL [])) fsm = 
     return fsm
@@ -456,9 +491,6 @@ workAround (Seq c1 c2) fsm = do
 fromTuple :: String -> (String, String, String) -> [String]
 fromTuple fsmname (st1, st2, val) = [fsmname, st1, st2, val]
 
--- workAround (Seq c1 c2) = do
---     workAround c1
---     workAround c2
 
                 -- aux funcs --   
 --------------------------------------------------
